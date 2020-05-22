@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="./tests/bootstrap.php"
+         backupGlobals="false"
+         backupStaticAttributes="false"
+         colors="true"
+         convertErrorsToExceptions="true"
+         convertNoticesToExceptions="true"
+         convertWarningsToExceptions="true"
+         processIsolation="false"
+         stopOnFailure="false">
+    <testsuites>
+        <testsuite name="TestCases">
+            <directory suffix="Test.php">./tests/TestCases</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <env name="MYSQL_USER" value="docker"/>
+        <env name="MYSQL_PASS" value="docker"/>
+        <env name="MYSQL_DATABASE" value="dev"/>
+    </php>
+</phpunit>

@@ -1,0 +1,33 @@
+{
+    "name": "hellopablo/data-migration",
+    "description": "A framework for migrating data between sources.",
+    "type": "library",
+    "require": {
+        "php": "^7.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^8.5.4",
+        "phpstan/phpstan": "^0.12.19"
+    },
+    "autoload": {
+        "psr-4": {
+            "HelloPablo\\DataMigration\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Pablo de la Peña",
+            "email": "pablo@hellopablo.co.uk"
+        }
+    ],
+    "scripts": {
+        "test": "./vendor/bin/phpunit",
+        "analyse": "./vendor/bin/phpstan analyse ./src --level 8"
+    }
+}
