@@ -3,6 +3,7 @@
 namespace HelloPablo\DataMigration\Connector;
 
 use HelloPablo\DataMigration\Interfaces\Connector;
+use HelloPablo\DataMigration\Interfaces\Unit;
 
 /**
  * Class MySQL
@@ -67,9 +68,9 @@ class MySQL implements Connector
      *
      * @return $this
      */
-    public function connect(): self
+    public function connect(): Connector
     {
-        $this->oPdo = new PDO(
+        $this->oPdo = new \PDO(
             sprintf(
                 'mysql:host=%s;port=%s;dbname=%s;charset=utf8',
                 $this->sHost,
@@ -77,11 +78,11 @@ class MySQL implements Connector
                 $this->sDatabase
             ),
             $this->sUsername,
-            $this->sPass
+            $this->sPassword
         );
 
         $this->oPdo->exec('set names utf8');
-        $this->oPdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $this->oPdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
         return $this;
     }
@@ -93,9 +94,40 @@ class MySQL implements Connector
      *
      * @return $this
      */
-    public function disconnect(): self
+    public function disconnect(): Connector
     {
         $this->oPdo = null;
+        return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Reads records from the data source
+     *
+     * @return \Generator
+     */
+    public function read($sUnitClass = \HelloPablo\DataMigration\Unit::class): \Generator
+    {
+        $oStatement = $this->oPdo->query('SELECT * FROM `' . $this->sTable . '`');
+
+        while ($oRow = $oStatement->fetch(\PDO::FETCH_OBJ)) {
+            yield new $sUnitClass($oRow);
+        }
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Writes a unit of work to the data source
+     *
+     * @param Unit $oUnit The unit to write
+     *
+     * @return $this
+     */
+    public function write(Unit $oUnit): Connector
+    {
+        //  @todo (Pablo - 2020-06-16) - Implement method
         return $this;
     }
 }

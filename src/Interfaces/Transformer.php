@@ -3,7 +3,7 @@
 namespace HelloPablo\DataMigration\Interfaces;
 
 /**
- * Interface Connector
+ * Interface Transformer
  *
  * @package HelloPablo\DataMigration\Interfaces
  */
