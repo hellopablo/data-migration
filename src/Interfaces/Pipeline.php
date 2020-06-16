@@ -24,4 +24,13 @@ interface Pipeline
      * @return Connector
      */
     public function getTargetConnector(): Connector;
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Returns the recipe for the pipeline
+     *
+     * @return Recipe
+     */
+    public function getRecipe(): Recipe;
 }

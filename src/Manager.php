@@ -144,6 +144,7 @@ class Manager
 
         $oConnectorSource = $oPipeline->getSourceConnector();
         $oConnectorTarget = $oPipeline->getTargetConnector();
+        $oRecipe          = $oPipeline->getRecipe();
 
         $this
             ->logln('Using source connector: <info>' . get_class($oConnectorSource) . '</info>', OutputInterface::VERBOSITY_VERBOSE)
@@ -153,6 +154,7 @@ class Manager
             ->connectConnector($oConnectorSource, 'source')
             ->connectConnector($oConnectorTarget, 'target');
 
+        /** @var Unit $oUnit */
         foreach ($oConnectorSource->read() as $oUnit) {
 
             if (!$oUnit instanceof Unit) {
@@ -165,8 +167,9 @@ class Manager
                 );
             }
 
-            //  @todo (Pablo - 2020-06-16) - Process the unit
-
+            $oUnit->applyRecipe($oRecipe);
+            dd($oUnit);
+            $oConnectorTarget->write($oUnit);
         }
 
         $this
@@ -191,14 +194,14 @@ class Manager
     {
         try {
 
-            $this->log('Connecting to ' . $sLabel . ' connector... ', OutputInterface::VERBOSITY_VERBOSE);
+            $this->log('Connecting to ' . $sLabel . ' connector... ');
             $oConnector->connect();
-            $this->logln('<comment>connected</comment>', OutputInterface::VERBOSITY_VERBOSE);
+            $this->logln('<comment>connected</comment>');
 
         } catch (\Exception $e) {
             $this
-                ->logln('<error>error</error>', OutputInterface::VERBOSITY_VERBOSE)
-                ->logln('<error>' . $e->getMessage() . '</error>', OutputInterface::VERBOSITY_VERBOSE);
+                ->logln('<error>error</error>')
+                ->logln('<error>' . $e->getMessage() . '</error>');
             throw $e;
         }
 

@@ -32,7 +32,7 @@ interface Connector
      *
      * @return \Generator
      */
-    public function read($sUnitClass = \HelloPablo\DataMigration\Unit::class): \Generator;
+    public function read(): \Generator;
 
     // --------------------------------------------------------------------------
 

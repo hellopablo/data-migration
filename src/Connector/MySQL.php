@@ -107,12 +107,12 @@ class MySQL implements Connector
      *
      * @return \Generator
      */
-    public function read($sUnitClass = \HelloPablo\DataMigration\Unit::class): \Generator
+    public function read(): \Generator
     {
         $oStatement = $this->oPdo->query('SELECT * FROM `' . $this->sTable . '`');
 
         while ($oRow = $oStatement->fetch(\PDO::FETCH_OBJ)) {
-            yield new $sUnitClass($oRow);
+            yield new \HelloPablo\DataMigration\Unit($oRow);
         }
     }
 
@@ -128,6 +128,7 @@ class MySQL implements Connector
     public function write(Unit $oUnit): Connector
     {
         //  @todo (Pablo - 2020-06-16) - Implement method
+        dd('DATA WRITE');
         return $this;
     }
 }
