@@ -127,8 +127,24 @@ class MySQL implements Connector
      */
     public function write(Unit $oUnit): Connector
     {
-        //  @todo (Pablo - 2020-06-16) - Implement method
-        dd('DATA WRITE');
+        $aData = $oUnit->toArray();
+        $aKeys = array_keys($aData);
+
+        $oStatement = $this->oPdo->prepare(
+            sprintf(
+                'INSERT INTO `%s` (%s) VALUES (%s)',
+                $this->sTable,
+                implode(', ', array_map(function (string $sProperty) {
+                    return '`' . $sProperty . '`';
+                }, $aKeys)),
+                implode(', ', array_map(function (string $sProperty) {
+                    return ':' . $sProperty;
+                }, $aKeys))
+            )
+        );
+
+        $oStatement->execute($aData);
+
         return $this;
     }
 }

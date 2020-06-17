@@ -123,7 +123,13 @@ class Manager
     public function run(array $aPipelines): self
     {
         foreach ($aPipelines as $oPipeline) {
-            $this->execute($oPipeline);
+            $this->prepare($oPipeline);
+        }
+
+        if (!$this->isDryRun()) {
+            foreach ($aPipelines as $oPipeline) {
+                $this->commit($oPipeline);
+            }
         }
 
         return $this;
@@ -138,21 +144,20 @@ class Manager
      *
      * @return $this
      */
-    protected function execute(Pipeline $oPipeline): self
+    protected function prepare(Pipeline $oPipeline): self
     {
-        $this->logln('Executing pipeline: <info>' . get_class($oPipeline) . '</info>');
+        $this->logln('Preparing pipeline: <info>' . get_class($oPipeline) . '</info>');
 
         $oConnectorSource = $oPipeline->getSourceConnector();
-        $oConnectorTarget = $oPipeline->getTargetConnector();
         $oRecipe          = $oPipeline->getRecipe();
 
-        $this
-            ->logln('Using source connector: <info>' . get_class($oConnectorSource) . '</info>', OutputInterface::VERBOSITY_VERBOSE)
-            ->logln('Using target connector: <info>' . get_class($oConnectorTarget) . '</info>', OutputInterface::VERBOSITY_VERBOSE);
+        $this->logln(
+            'Using source connector: <info>' . get_class($oConnectorSource) . '</info>',
+            OutputInterface::VERBOSITY_VERBOSE
+        );
 
         $this
-            ->connectConnector($oConnectorSource, 'source')
-            ->connectConnector($oConnectorTarget, 'target');
+            ->connectConnector($oConnectorSource, 'source');
 
         /** @var Unit $oUnit */
         foreach ($oConnectorSource->read() as $oUnit) {
@@ -168,12 +173,35 @@ class Manager
             }
 
             $oUnit->applyRecipe($oRecipe);
-            dd($oUnit);
-            $oConnectorTarget->write($oUnit);
+
+            //  @todo (Pablo - 2020-06-17) - Track the IDs
+            //  @todo (Pablo - 2020-06-17) - Write the migration to a tracking file
         }
 
         $this
-            ->logln('Completed pipeline: <info>' . get_class($oPipeline) . '</info>')
+            ->logln('Finished preparing pipeline: <info>' . get_class($oPipeline) . '</info>')
+            ->logln();
+
+        return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Commits a Pipeline
+     *
+     * @param Pipeline $oPipeline The pipeline to commit
+     *
+     * @return $this
+     */
+    protected function commit(Pipeline $oPipeline): self
+    {
+        $this->log('Committing pipeline: <info>' . get_class($oPipeline) . '</info>...');
+
+        //  @todo (Pablo - 2020-06-17) - Commit the tracking file
+
+        $this
+            ->log('<info>done</info>')
             ->logln();
 
         return $this;

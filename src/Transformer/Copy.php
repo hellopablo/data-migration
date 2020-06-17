@@ -11,11 +11,21 @@ use HelloPablo\DataMigration\Interfaces\Transformer;
  */
 class Copy implements Transformer
 {
+    /** @var string|null */
     protected $sSourceProperty;
+
+    /** @var string */
     protected $sTargetProperty;
 
     // --------------------------------------------------------------------------
-    public function __construct(string $sSourceProperty, string $sTargetProperty)
+
+    /**
+     * Copy constructor.
+     *
+     * @param string|null $sSourceProperty The source property
+     * @param string|null      $sTargetProperty The target property
+     */
+    public function __construct(string $sSourceProperty = null, string $sTargetProperty = null)
     {
         $this->sSourceProperty = $sSourceProperty;
         $this->sTargetProperty = $sTargetProperty;
@@ -24,9 +34,11 @@ class Copy implements Transformer
     // --------------------------------------------------------------------------
 
     /**
-     * @return string
+     * Returns the source property, if null then the field is considered new
+     *
+     * @return ?string
      */
-    public function getSourceProperty(): string
+    public function getSourceProperty(): ?string
     {
         return $this->sSourceProperty;
     }
@@ -34,6 +46,8 @@ class Copy implements Transformer
     // --------------------------------------------------------------------------
 
     /**
+     * Returns the target property
+     *
      * @return string
      */
     public function getTargetProperty(): string

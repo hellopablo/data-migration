@@ -12,10 +12,10 @@ interface Transformer
     /**
      * Transformer constructor.
      *
-     * @param string $sSourceProperty
-     * @param string $sTargetProperty
+     * @param string|null $sSourceProperty
+     * @param string      $sTargetProperty
      */
-    public function __construct(string $sSourceProperty, string $sTargetProperty);
+    public function __construct(?string $sSourceProperty, string $sTargetProperty);
 
     // --------------------------------------------------------------------------
 
