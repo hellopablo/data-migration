@@ -10,6 +10,15 @@ namespace HelloPablo\DataMigration\Interfaces;
 interface Connector
 {
     /**
+     * Connector constructor.
+     *
+     * @param Unit $oUnit The class to clone for each unit of work
+     */
+    public function __construct(Unit $oUnit);
+
+    // --------------------------------------------------------------------------
+
+    /**
      * Initiates the connection
      *
      * @return $this

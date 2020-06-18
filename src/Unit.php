@@ -22,11 +22,80 @@ class Unit implements \HelloPablo\DataMigration\Interfaces\Unit
     /**
      * Unit constructor.
      *
-     * @param \stdClass $oSource The source data
+     * @param \stdClass|null $oSource The source data
      */
-    public function __construct(\stdClass $oSource)
+    public function __construct(\stdClass $oSource = null)
     {
         $this->oSource = $oSource;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Sets the source object
+     *
+     * @param \stdClass $oSource The source object
+     *
+     * @return $this
+     */
+    public function setSource(\stdClass $oSource): Interfaces\Unit
+    {
+        $this->oSource = $oSource;
+        return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Sets the target object
+     *
+     * @param \stdClass $oTarget The target object
+     *
+     * @return $this
+     */
+    public function setTarget(\stdClass $oTarget): Interfaces\Unit
+    {
+        $this->oTarget = $oTarget;
+        return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Returns the source item's ID
+     *
+     * @return mixed
+     */
+    public function getSourceId()
+    {
+        return $this->oSource->id ?? null;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Sets the target ID
+     *
+     * @param mixed $mId the target ID
+     *
+     * @return $this
+     */
+    public function setTargetId($mId): Interfaces\Unit
+    {
+        $this->oTarget->id = $mId;
+        return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Returns the target item's ID
+     *
+     * @return mixed
+     */
+    public function getTargetId()
+    {
+        return $this->oTarget->id ?? null;
     }
 
     // --------------------------------------------------------------------------
@@ -40,10 +109,10 @@ class Unit implements \HelloPablo\DataMigration\Interfaces\Unit
      */
     public function applyRecipe(Interfaces\Recipe $oRecipe): Interfaces\Unit
     {
-        $aTransformers = $oRecipe->getTransformers();
         $this->oTarget = (object) [];
 
-        foreach ($aTransformers as $oTransformer) {
+        /** @var Interfaces\Transformer $oTransformer */
+        foreach ($oRecipe->yieldTransformers() as $oTransformer) {
             $this->applyTransformer($oTransformer);
         }
 
@@ -64,7 +133,7 @@ class Unit implements \HelloPablo\DataMigration\Interfaces\Unit
         $sSourceProperty = $oTransformer->getSourceProperty();
         $sTargetProperty = $oTransformer->getTargetProperty();
 
-        if ($sSourceProperty === null) {
+        if ($sSourceProperty === null || empty($this->oSource)) {
             $this->oTarget->{$sTargetProperty} = $oTransformer->transform(null);
 
         } elseif (!property_exists($this->oSource, $sSourceProperty)) {

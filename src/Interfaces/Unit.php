@@ -11,10 +11,59 @@ interface Unit
 {
     /**
      * Unit constructor.
-     *
-     * @param \stdClass $oSource The source data
      */
-    public function __construct(\stdClass $oSource);
+    public function __construct();
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Sets the source object
+     *
+     * @param \stdClass $oSource The source object
+     *
+     * @return $this
+     */
+    public function setSource(\stdClass $oSource): self;
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Sets the target object
+     *
+     * @param \stdClass $oTarget The target object
+     *
+     * @return $this
+     */
+    public function setTarget(\stdClass $oTarget): self;
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Returns the source item's ID
+     *
+     * @return mixed
+     */
+    public function getSourceId();
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Sets the target ID
+     *
+     * @param mixed $mId The ID of the target
+     *
+     * @return mixed
+     */
+    public function setTargetId($mId): self;
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Returns the target item's ID
+     *
+     * @return mixed
+     */
+    public function getTargetId();
 
     // --------------------------------------------------------------------------
 

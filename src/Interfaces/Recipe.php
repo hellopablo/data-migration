@@ -10,9 +10,9 @@ namespace HelloPablo\DataMigration\Interfaces;
 interface Recipe
 {
     /**
-     * Returns an array of steps to apply to the unit
+     * Yields transformers to apply to the unit
      *
-     * @return Transformer[]
+     * @return \Generator
      */
-    public function getTransformers(): array;
+    public function yieldTransformers(): \Generator;
 }

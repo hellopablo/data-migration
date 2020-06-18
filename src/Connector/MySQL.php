@@ -12,6 +12,9 @@ use HelloPablo\DataMigration\Interfaces\Unit;
  */
 class MySQL implements Connector
 {
+    /** @var Unit */
+    protected $oUnit;
+
     /** @var string|null */
     protected $sHost;
 
@@ -38,6 +41,7 @@ class MySQL implements Connector
     /**
      * MySQL constructor.
      *
+     * @param Unit        $oUnit     The class to use for each unit of work
      * @param string|null $sHost     The host to connect to
      * @param string|null $sUsername The username to connect with
      * @param string|null $sPassword The password to connect with
@@ -46,6 +50,7 @@ class MySQL implements Connector
      * @param string|null $sTable    The table to use
      */
     public function __construct(
+        Unit $oUnit,
         string $sHost = null,
         string $sUsername = null,
         string $sPassword = null,
@@ -53,6 +58,7 @@ class MySQL implements Connector
         string $sDatabase = null,
         string $sTable = null
     ) {
+        $this->oUnit     = $oUnit;
         $this->sHost     = $sHost ?? '127.0.0.1';
         $this->sUsername = $sUsername ?? '';
         $this->sPassword = $sPassword ?? '';
@@ -112,7 +118,9 @@ class MySQL implements Connector
         $oStatement = $this->oPdo->query('SELECT * FROM `' . $this->sTable . '`');
 
         while ($oRow = $oStatement->fetch(\PDO::FETCH_OBJ)) {
-            yield new \HelloPablo\DataMigration\Unit($oRow);
+            yield (clone $this->oUnit)
+                ->setSource($oRow)
+                ->setTarget((object) []);
         }
     }
 
@@ -144,6 +152,8 @@ class MySQL implements Connector
         );
 
         $oStatement->execute($aData);
+
+        $oUnit->setTargetId($this->oPdo->lastInsertId());
 
         return $this;
     }

@@ -18,8 +18,29 @@ class Manager
     /** @var bool */
     protected $bDryRun = false;
 
+    /** @var string|null */
+    protected $sCacheDir;
+
     /** @var OutputInterface|null */
     protected $oOutputInterface;
+
+    /** @var string[] */
+    protected $aPipelineCache = [];
+
+    /** @var array */
+    protected $aPrepareErrors;
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Manager constructor.
+     *
+     * @param string|null $sCacheDir The cache directory to use
+     */
+    public function __construct(string $sCacheDir = null)
+    {
+        $this->setCacheDir($sCacheDir ?? sys_get_temp_dir());
+    }
 
     // --------------------------------------------------------------------------
 
@@ -46,6 +67,40 @@ class Manager
     public function isDryRun(): bool
     {
         return $this->bDryRun;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Sets the cache directory to use
+     *
+     * @param string $sCacheDir The cache directory to use
+     *
+     * @return $this
+     */
+    protected function setCacheDir(string $sCacheDir): self
+    {
+        $this->sCacheDir = rtrim($sCacheDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        if (!is_dir($this->sCacheDir)) {
+            if (!mkdir($this->sCacheDir, 0700, true)) {
+                throw new \RuntimeException(
+                    'Failed to create cache directory: ' . $this->sCacheDir
+                );
+            }
+        }
+        return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Returns the cache directory being used
+     *
+     * @return string
+     */
+    protected function getCacheDir(): string
+    {
+        return $this->sCacheDir;
     }
 
     // --------------------------------------------------------------------------
@@ -114,22 +169,36 @@ class Manager
     // --------------------------------------------------------------------------
 
     /**
-     * Runs the supplied migration Pipelines
+     * Prepares the supplied migration Pipelines
      *
      * @param Pipeline[] $aPipelines The Pipelines to run
      *
      * @return $this
      */
-    public function run(array $aPipelines): self
+    public function prepare(array $aPipelines): self
     {
+        $this->aPipelineCache = [];
+        $this->aPrepareErrors = [];
         foreach ($aPipelines as $oPipeline) {
-            $this->prepare($oPipeline);
+            $this->preparePipeline($oPipeline);
         }
 
-        if (!$this->isDryRun()) {
-            foreach ($aPipelines as $oPipeline) {
-                $this->commit($oPipeline);
-            }
+        return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Commits the supplied migration Pipelines
+     *
+     * @param Pipeline[] $aPipelines The Piplines to commit
+     *
+     * @return $this
+     */
+    public function commit(array $aPipelines)
+    {
+        foreach ($aPipelines as $oPipeline) {
+            $this->commitPipeline($oPipeline);
         }
 
         return $this;
@@ -144,45 +213,69 @@ class Manager
      *
      * @return $this
      */
-    protected function prepare(Pipeline $oPipeline): self
+    protected function preparePipeline(Pipeline $oPipeline): self
     {
-        $this->logln('Preparing pipeline: <info>' . get_class($oPipeline) . '</info>');
+        $sPipeline = get_class($oPipeline);
+        $this->logln('Preparing pipeline: <info>' . $sPipeline . '</info>... ');
+
+        $this->aPipelineCache[$sPipeline] = fopen($this->getCacheDir() . uniqid(), 'w+');
 
         $oConnectorSource = $oPipeline->getSourceConnector();
-        $oRecipe          = $oPipeline->getRecipe();
+        $oRecipe          = $oPipeline->getRecipe();;
 
-        $this->logln(
-            'Using source connector: <info>' . get_class($oConnectorSource) . '</info>',
-            OutputInterface::VERBOSITY_VERBOSE
-        );
-
-        $this
-            ->connectConnector($oConnectorSource, 'source');
+        $this->connectConnector($oConnectorSource);
 
         /** @var Unit $oUnit */
         foreach ($oConnectorSource->read() as $oUnit) {
 
-            if (!$oUnit instanceof Unit) {
-                throw new \InvalidArgumentException(
-                    sprintf(
-                        'Expected %s, got %s',
-                        Unit::class,
-                        gettype($oUnit)
-                    )
+            try {
+                $this->log(' – Preparing source item <info>#' . $oUnit->getSourceId() . '</info>... ');
+
+                if (!$oUnit instanceof Unit) {
+                    throw new \InvalidArgumentException(
+                        sprintf(
+                            'Expected %s, got %s',
+                            Unit::class,
+                            gettype($oUnit)
+                        )
+                    );
+                }
+
+                $oUnit
+                    ->applyRecipe($oRecipe);
+
+                //  @todo (Pablo - 2020-06-17) - Track the IDs
+
+                fwrite(
+                    $this->aPipelineCache[$sPipeline],
+                    str_replace("\n", '\\\n', serialize($oUnit)) . PHP_EOL
                 );
+
+                $this->logln('<info>done</info>');
+
+            } catch (\Exception $e) {
+                $this->logln('<error>' . $e->getMessage() . '</error>');
+                $this->aPrepareErrors[] = (object) [
+                    'pipeline'  => $sPipeline,
+                    'source_id' => $oUnit->getSourceId(),
+                    'error'     => $e->getMessage(),
+                ];
             }
-
-            $oUnit->applyRecipe($oRecipe);
-
-            //  @todo (Pablo - 2020-06-17) - Track the IDs
-            //  @todo (Pablo - 2020-06-17) - Write the migration to a tracking file
         }
 
-        $this
-            ->logln('Finished preparing pipeline: <info>' . get_class($oPipeline) . '</info>')
-            ->logln();
+        $this->logln();
 
         return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * @return array
+     */
+    public function getPrepareErrors(): array
+    {
+        return $this->aPrepareErrors;
     }
 
     // --------------------------------------------------------------------------
@@ -194,15 +287,40 @@ class Manager
      *
      * @return $this
      */
-    protected function commit(Pipeline $oPipeline): self
+    protected function commitPipeline(Pipeline $oPipeline): self
     {
-        $this->log('Committing pipeline: <info>' . get_class($oPipeline) . '</info>...');
+        $sPipeline = get_class($oPipeline);
+        $this->log('Committing pipeline: <info>' . $sPipeline . '</info>... ');
 
-        //  @todo (Pablo - 2020-06-17) - Commit the tracking file
+        if ($this->isDryRun()) {
+            return $this->logln('<warning>Dry Run - not comitting</warning>');
+        }
 
-        $this
-            ->log('<info>done</info>')
-            ->logln();
+        if (!array_key_exists(get_class($oPipeline), $this->aPipelineCache)) {
+            return $this->log('<error>No cachefile available</error>');
+        }
+
+        $oConnectorTarget = $oPipeline->getTargetConnector();
+        $this->connectConnector($oConnectorTarget);
+
+        rewind($this->aPipelineCache[$sPipeline]);
+
+        while (($buffer = fgets($this->aPipelineCache[$sPipeline])) !== false) {
+
+            $oUnit = unserialize(str_replace('\\\n', "\n", $buffer));
+
+            try {
+
+                $this->log(' – Committing source item <info>#' . $oUnit->getSourceId() . '</info>... ');
+                $oConnectorTarget->write($oUnit);
+                $this->logln('<info>done</info>; target ID is <info>#' . $oUnit->getTargetId() . '</info>');
+
+            } catch (\Exception $e) {
+                $this->logln('<error>' . $e->getMessage() . '</error>');
+            }
+        }
+
+        $this->logln();
 
         return $this;
     }
@@ -213,18 +331,15 @@ class Manager
      * Connects a connector
      *
      * @param Connector $oConnector The connector to connect
-     * @param string    $sLabel     The label to give the connector (for logging purposes)
      *
      * @return $this
      * @throws \Exception
      */
-    protected function connectConnector(Connector $oConnector, string $sLabel): self
+    protected function connectConnector(Connector $oConnector): self
     {
         try {
 
-            $this->log('Connecting to ' . $sLabel . ' connector... ');
             $oConnector->connect();
-            $this->logln('<comment>connected</comment>');
 
         } catch (\Exception $e) {
             $this
