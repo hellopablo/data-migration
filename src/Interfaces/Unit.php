@@ -28,6 +28,15 @@ interface Unit
     // --------------------------------------------------------------------------
 
     /**
+     * Returns the source object
+     *
+     * @return \stdClass
+     */
+    public function getSource(): \stdClass;
+
+    // --------------------------------------------------------------------------
+
+    /**
      * Sets the target object
      *
      * @param \stdClass $oTarget The target object
@@ -35,6 +44,15 @@ interface Unit
      * @return $this
      */
     public function setTarget(\stdClass $oTarget): self;
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Returns the target object
+     *
+     * @return \stdClass
+     */
+    public function getTarget(): \stdClass;
 
     // --------------------------------------------------------------------------
 

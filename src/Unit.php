@@ -47,6 +47,18 @@ class Unit implements \HelloPablo\DataMigration\Interfaces\Unit
     // --------------------------------------------------------------------------
 
     /**
+     * Returns the source object
+     *
+     * @return \stdClass
+     */
+    public function getSource(): \stdClass
+    {
+        return $this->oSource;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
      * Sets the target object
      *
      * @param \stdClass $oTarget The target object
@@ -62,13 +74,25 @@ class Unit implements \HelloPablo\DataMigration\Interfaces\Unit
     // --------------------------------------------------------------------------
 
     /**
+     * Returns the target object
+     *
+     * @return \stdClass
+     */
+    public function getTarget(): \stdClass
+    {
+        return $this->oTarget;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
      * Returns the source item's ID
      *
      * @return mixed
      */
     public function getSourceId()
     {
-        return $this->oSource->id ?? null;
+        return $this->getSource()->id ?? null;
     }
 
     // --------------------------------------------------------------------------
@@ -82,7 +106,7 @@ class Unit implements \HelloPablo\DataMigration\Interfaces\Unit
      */
     public function setTargetId($mId): Interfaces\Unit
     {
-        $this->oTarget->id = $mId;
+        $this->getTarget()->id = $mId;
         return $this;
     }
 
@@ -95,7 +119,7 @@ class Unit implements \HelloPablo\DataMigration\Interfaces\Unit
      */
     public function getTargetId()
     {
-        return $this->oTarget->id ?? null;
+        return $this->getTarget()->id ?? null;
     }
 
     // --------------------------------------------------------------------------
