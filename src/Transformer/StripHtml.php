@@ -15,9 +15,10 @@ class StripHtml extends Copy
      * Applies the transformation
      *
      * @param mixed $mInput The value to transform
+     * @param Interfaces\Unit  $oUnit  The Unit being transformed
      */
-    public function transform($mInput)
+    public function transform($mInput, Interfaces\Unit $oUnit)
     {
-        return strip_tags(parent::transform($mInput));
+        return strip_tags(parent::transform($mInput, $oUnit));
     }
 }

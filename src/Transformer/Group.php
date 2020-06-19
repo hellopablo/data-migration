@@ -34,15 +34,16 @@ class Group extends Copy
     /**
      * Applies the transformation
      *
-     * @param mixed $mInput The value to transform
+     * @param mixed           $mInput The value to transform
+     * @param Interfaces\Unit $oUnit  The Unit being transformed
      */
-    public static function transform($mInput)
+    public function transform($mInput, Interfaces\Unit $oUnit)
     {
         foreach (static::$aTransformers as $sTransformer) {
             if ($sTransformer instanceof Interfaces\Transformer) {
-                $mInput = $sTransformer->transform($mInput);
+                $mInput = $mTransformer->transform($mInput, $oUnit);
             } else {
-                $mInput = call_user_func($sTransformer . '::transform', $mInput);
+                $mInput = call_user_func($mTransformer . '::transform', $mInput, $oUnit);
             }
         }
 

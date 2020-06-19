@@ -23,6 +23,7 @@ interface Transformer
      * Applies the transformation
      *
      * @param mixed $mInput The value to transform
+     * @param Unit  $oUnit  The unit being being transformed
      */
-    public function transform($mInput);
+    public function transform($mInput, Unit $oUnit);
 }

@@ -146,7 +146,7 @@ class Unit implements \HelloPablo\DataMigration\Interfaces\Unit
         $sTargetProperty = $oTransformer->getTargetProperty();
 
         if ($sSourceProperty === null || empty($this->oSource)) {
-            $this->oTarget->{$sTargetProperty} = $oTransformer->transform(null);
+            $this->getTarget()->{$sTargetProperty} = $oTransformer->transform(null, $this);
 
         } elseif (!property_exists($this->oSource, $sSourceProperty)) {
             throw new \RuntimeException(
@@ -165,8 +165,9 @@ class Unit implements \HelloPablo\DataMigration\Interfaces\Unit
             );
 
         } else {
-            $this->oTarget->{$sTargetProperty} = $oTransformer->transform(
-                $this->oSource->{$sSourceProperty}
+            $this->getTarget()->{$sTargetProperty} = $oTransformer->transform(
+                $this->getSource()->{$sSourceProperty},
+                $this
             );
         }
 

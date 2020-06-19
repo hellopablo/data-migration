@@ -2,14 +2,14 @@
 
 namespace HelloPablo\DataMigration\Transformer;
 
-use HelloPablo\DataMigration\Interfaces\Transformer;
+use HelloPablo\DataMigration\Interfaces;
 
 /**
  * Class Copy
  *
  * @package HelloPablo\DataMigration\Transformer
  */
-class Copy implements Transformer
+class Copy implements Interfaces\Transformer
 {
     /** @var string|null */
     protected $sSourceProperty;
@@ -61,8 +61,9 @@ class Copy implements Transformer
      * Applies the transformation
      *
      * @param mixed $mInput The value to transform
+     * @param Interfaces\Unit  $oUnit  The Unit being transformed
      */
-    public function transform($mInput)
+    public function transform($mInput, Interfaces\Unit $oUnit)
     {
         return $mInput;
     }
