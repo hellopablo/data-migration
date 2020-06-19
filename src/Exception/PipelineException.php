@@ -1,6 +1,6 @@
 <?php
 
-namespace HelloPablo\Exception;
+namespace HelloPablo\DataMigration\Exception;
 
 use HelloPablo\DataMigration\Interfaces\Pipeline;
 use HelloPablo\DataMigration\Interfaces\Unit;

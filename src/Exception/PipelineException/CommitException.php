@@ -1,9 +1,14 @@
 <?php
 
-namespace HelloPablo\Exception\PipelineException;
+namespace HelloPablo\DataMigration\Exception\PipelineException;
 
-use HelloPablo\Exception\PipelineException;
+use HelloPablo\DataMigration\Exception\PipelineException;
 
+/**
+ * Class CommitException
+ *
+ * @package HelloPablo\DataMigration\Exception\Pipeline
+ */
 class CommitException extends PipelineException
 {
 }

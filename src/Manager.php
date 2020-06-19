@@ -5,8 +5,8 @@ namespace HelloPablo\DataMigration;
 use HelloPablo\DataMigration\Interfaces\Connector;
 use HelloPablo\DataMigration\Interfaces\Pipeline;
 use HelloPablo\DataMigration\Interfaces\Unit;
-use HelloPablo\Exception\PipelineException\CommitException;
-use HelloPablo\Exception\PipelineException\PrepareException;
+use HelloPablo\DataMigration\Exception\PipelineException\CommitException;
+use HelloPablo\DataMigration\Exception\PipelineException\PrepareException;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**

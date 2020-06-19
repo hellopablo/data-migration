@@ -1,6 +1,6 @@
 <?php
 
-namespace HelloPablo\Exception;
+namespace HelloPablo\DataMigration\Exception;
 
 /**
  * Class DataMigrationException
