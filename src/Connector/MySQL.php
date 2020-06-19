@@ -12,6 +12,36 @@ use HelloPablo\DataMigration\Interfaces\Unit;
  */
 class MySQL implements Connector
 {
+    /**
+     * The string to use for the DSN, will be passed:
+     * - Host
+     * - Port
+     * - Database
+     *
+     * @var string
+     */
+    const DSN_STIRNG = 'mysql:host=%s;port=%s;dbname=%s;charset=utf8';
+
+    /**
+     * The query used for reading items, will be passed:
+     * - Table
+     *
+     * @var string
+     */
+    const READ_QUERY = 'SELECT * FROM `%s`;';
+
+    /**
+     * The query used for writing items, will be passed:
+     * - Table
+     * - Columns
+     * - Escaped values
+     *
+     * @var string
+     */
+    const WRITE_QUERY = 'INSERT INTO `%s` (%s) VALUES (%s)';
+
+    // --------------------------------------------------------------------------
+
     /** @var Unit */
     protected $oUnit;
 
@@ -78,7 +108,7 @@ class MySQL implements Connector
     {
         $this->oPdo = new \PDO(
             sprintf(
-                'mysql:host=%s;port=%s;dbname=%s;charset=utf8',
+                static::DSN_STIRNG,
                 $this->sHost,
                 $this->iPort,
                 $this->sDatabase
@@ -127,7 +157,12 @@ class MySQL implements Connector
      */
     public function read(): \Generator
     {
-        $oStatement = $this->oPdo->query('SELECT * FROM `' . $this->sTable . '`');
+        $oStatement = $this->oPdo->query(
+            sprintf(
+                static::READ_QUERY,
+                $this->sTable
+            )
+        );
 
         while ($oRow = $oStatement->fetch(\PDO::FETCH_OBJ)) {
             yield (clone $this->oUnit)
@@ -152,7 +187,7 @@ class MySQL implements Connector
 
         $oStatement = $this->oPdo->prepare(
             sprintf(
-                'INSERT INTO `%s` (%s) VALUES (%s)',
+                static::WRITE_QUERY,
                 $this->sTable,
                 implode(', ', array_map(function (string $sProperty) {
                     return '`' . $sProperty . '`';
