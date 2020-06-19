@@ -16,14 +16,17 @@ use Symfony\Component\Console\Output\OutputInterface;
  */
 class Manager
 {
+    /** @var OutputInterface|null */
+    protected $oOutputInterface;
+
+    /** @var bool */
+    protected $bDebug = false;
+
     /** @var bool */
     protected $bDryRun = false;
 
     /** @var string|null */
     protected $sCacheDir;
-
-    /** @var OutputInterface|null */
-    protected $oOutputInterface;
 
     /** @var string[] */
     protected $aPipelineCache = [];
@@ -42,11 +45,76 @@ class Manager
     /**
      * Manager constructor.
      *
-     * @param string|null $sCacheDir The cache directory to use
+     * @param string|null          $sCacheDir        The Cache directory to use
+     * @param OutputInterface|null $oOutputInterface An OutputInterface to use
+     * @param bool                 $bDebug           Whether to run in debug mode or not
+     * @param bool                 $bDryRun          Whetehr to run in dry-run mode or not
      */
-    public function __construct(string $sCacheDir = null)
+    public function __construct(
+        string $sCacheDir = null,
+        OutputInterface $oOutputInterface = null,
+        bool $bDebug = false,
+        bool $bDryRun = false
+    ) {
+        $this
+            ->setCacheDir($sCacheDir ?: sys_get_temp_dir())
+            ->setOutputInterface($oOutputInterface)
+            ->setDebug($bDebug)
+            ->setDryRun($bDryRun);
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Sets the output interface to use
+     *
+     * @param OutputInterface|null $oOutput The OutputInterface to use
+     *
+     * @return $this
+     */
+    public function setOutputInterface(?OutputInterface $oOutput): self
     {
-        $this->setCacheDir($sCacheDir ?? sys_get_temp_dir());
+        $this->oOutputInterface = $oOutput;
+        return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Returns the active OutputInterface
+     *
+     * @return OutputInterface|null
+     */
+    public function getOutputInterface(): ?OutputInterface
+    {
+        return $this->oOutputInterface;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Set the debug mode
+     *
+     * @param bool $bDebug Whether to turn on debug mode or not
+     *
+     * @return $this
+     */
+    public function setDebug(bool $bDebug): self
+    {
+        $this->bDebug = $bDebug;
+        return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Whether the system is in debug mode or not
+     *
+     * @return bool
+     */
+    public function isDebug(): bool
+    {
+        return $this->bDebug;
     }
 
     // --------------------------------------------------------------------------
@@ -108,33 +176,6 @@ class Manager
     protected function getCacheDir(): string
     {
         return $this->sCacheDir;
-    }
-
-    // --------------------------------------------------------------------------
-
-    /**
-     * Sets the output interface to use
-     *
-     * @param OutputInterface $oOutput The OutputInterface to use
-     *
-     * @return $this
-     */
-    public function setOutputInterface(OutputInterface $oOutput): self
-    {
-        $this->oOutputInterface = $oOutput;
-        return $this;
-    }
-
-    // --------------------------------------------------------------------------
-
-    /**
-     * Returns the active OutputInterface
-     *
-     * @return OutputInterface|null
-     */
-    public function getOutputInterface(): ?OutputInterface
-    {
-        return $this->oOutputInterface;
     }
 
     // --------------------------------------------------------------------------
@@ -327,6 +368,14 @@ class Manager
                 $oUnit
                     ->applyRecipe($oRecipe);
 
+                if ($this->isDebug()) {
+                    $this
+                        ->logln()
+                        ->logln('<bg=yellow;options=bold>DEBUG</>')
+                        ->logln(print_r($oUnit, true));
+                    die();
+                }
+
                 //  @todo (Pablo - 2020-06-17) - Track the IDs
 
                 fwrite(
@@ -365,7 +414,7 @@ class Manager
         $this->logln('Committing pipeline: <info>' . $sPipeline . '</info>... ');
 
         if ($this->isDryRun()) {
-            return $this->logln('<warning>Dry Run - not comitting</warning>');
+            return $this->logln('<bg=yellow;options=bold>Dry Run - not comitting</>');
         }
 
         if (!array_key_exists(get_class($oPipeline), $this->aPipelineCache)) {
