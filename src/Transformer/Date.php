@@ -13,6 +13,31 @@ class Date extends Copy
 {
     protected $sFormat = 'Y-m-d';
 
+    /**
+     * The default value to return
+     *
+     * @var \DateTime|null
+     */
+    protected $oDefault;
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Date constructor.
+     *
+     * @param string|null    $sSourceProperty
+     * @param string|null    $sTargetProperty
+     * @param \DateTime|null $oDefault
+     */
+    public function __construct(
+        string $sSourceProperty = null,
+        string $sTargetProperty = null,
+        \DateTime $oDefault = null
+    ) {
+        parent::__construct($sSourceProperty, $sTargetProperty);
+        $this->oDefault = $oDefault;
+    }
+
     // --------------------------------------------------------------------------
 
     /**
@@ -42,7 +67,9 @@ class Date extends Copy
             return $oDate->format($this->sFormat);
 
         } catch (\Exception $e) {
-            return null;
+            return $this->oDefault instanceof \DateTime
+                ? $this->oDefault->format($this->sFormat)
+                : null;
         }
     }
 }
