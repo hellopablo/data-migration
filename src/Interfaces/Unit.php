@@ -68,6 +68,15 @@ interface Unit
     // --------------------------------------------------------------------------
 
     /**
+     * Determines if the itme should be migrated
+     *
+     * @return bool
+     */
+    public function shouldMigrate(): bool;
+
+    // --------------------------------------------------------------------------
+
+    /**
      * Applies a recipe to the unit
      *
      * @param Recipe $oRecipe The recipe to apply
