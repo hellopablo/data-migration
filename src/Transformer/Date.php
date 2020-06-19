@@ -2,7 +2,7 @@
 
 namespace HelloPablo\DataMigration\Transformer;
 
-use HelloPablo\DataMigration\Interfaces\Transformer;
+use HelloPablo\DataMigration\Interfaces;
 
 /**
  * Class Date
@@ -11,6 +11,11 @@ use HelloPablo\DataMigration\Interfaces\Transformer;
  */
 class Date extends Copy
 {
+    /**
+     * The format for the output
+     *
+     * @var string
+     */
     protected $sFormat = 'Y-m-d';
 
     /**

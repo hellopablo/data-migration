@@ -2,8 +2,6 @@
 
 namespace HelloPablo\DataMigration\Transformer;
 
-use HelloPablo\DataMigration\Interfaces\Transformer;
-
 /**
  * Class DateTime
  *

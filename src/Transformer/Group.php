@@ -11,7 +11,7 @@ use HelloPablo\DataMigration\Interfaces;
  */
 class Group extends Copy
 {
-    /** @var array string[] */
+    /** @var Interfaces\Transformer[]|string[] */
     protected $aTransformers = [];
 
     // --------------------------------------------------------------------------
@@ -26,7 +26,7 @@ class Group extends Copy
     public function __construct(string $sSourceProperty = null, string $sTargetProperty = null, array $aTransformers = [])
     {
         parent::__construct($sSourceProperty, $sTargetProperty);
-        $this->$aTransformers = $aTransformers;
+        $this->aTransformers = $aTransformers;
     }
 
     // --------------------------------------------------------------------------
@@ -39,9 +39,11 @@ class Group extends Copy
      */
     public function transform($mInput, Interfaces\Unit $oUnit)
     {
-        foreach (static::$aTransformers as $sTransformer) {
-            if ($sTransformer instanceof Interfaces\Transformer) {
+        foreach ($this->aTransformers as $mTransformer) {
+
+            if ($mTransformer instanceof Interfaces\Transformer) {
                 $mInput = $mTransformer->transform($mInput, $oUnit);
+
             } else {
                 $mInput = call_user_func($mTransformer . '::transform', $mInput, $oUnit);
             }

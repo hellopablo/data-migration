@@ -2,7 +2,7 @@
 
 namespace HelloPablo\DataMigration\Transformer;
 
-use HelloPablo\DataMigration\Interfaces\Transformer;
+use HelloPablo\DataMigration\Interfaces;
 
 /**
  * Class StripHtml
