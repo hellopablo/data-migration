@@ -101,6 +101,18 @@ class Unit implements \HelloPablo\DataMigration\Interfaces\Unit
     // --------------------------------------------------------------------------
 
     /**
+     * Determines if the itme should be migrated
+     *
+     * @return bool
+     */
+    public function shouldMigrate(): bool
+    {
+        return true;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
      * Applies a recipe to the unit
      *
      * @param Interfaces\Recipe $oRecipe The recipe to apply

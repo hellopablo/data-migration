@@ -37,6 +37,15 @@ interface Connector
     // --------------------------------------------------------------------------
 
     /**
+     * Whether or not the connector can rollback changes if an error is encountered
+     *
+     * @return bool
+     */
+    public function supportsTransactions(): bool;
+
+    // --------------------------------------------------------------------------
+
+    /**
      * Reads records from the data source
      *
      * @return \Generator

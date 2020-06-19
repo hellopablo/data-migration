@@ -109,6 +109,18 @@ class MySQL implements Connector
     // --------------------------------------------------------------------------
 
     /**
+     * Whether or not the connector can rollback changes if an error is encountered
+     *
+     * @return bool
+     */
+    public function supportsTransactions(): bool
+    {
+        return false;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
      * Reads records from the data source
      *
      * @return \Generator

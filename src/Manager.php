@@ -5,8 +5,9 @@ namespace HelloPablo\DataMigration;
 use HelloPablo\DataMigration\Interfaces\Connector;
 use HelloPablo\DataMigration\Interfaces\Pipeline;
 use HelloPablo\DataMigration\Interfaces\Unit;
+use HelloPablo\Exception\PipelineException\CommitException;
+use HelloPablo\Exception\PipelineException\PrepareException;
 use Symfony\Component\Console\Output\OutputInterface;
-use Tests\Mocks\Objects\DataTypeOne1;
 
 /**
  * Class Manager
@@ -27,8 +28,14 @@ class Manager
     /** @var string[] */
     protected $aPipelineCache = [];
 
-    /** @var array */
-    protected $aPrepareErrors;
+    /** @var string[] */
+    protected $aWarnings = [];
+
+    /** @var PrepareException[] */
+    protected $aPrepareErrors = [];
+
+    /** @var CommitException[] */
+    protected $aCommitErrors = [];
 
     // --------------------------------------------------------------------------
 
@@ -169,6 +176,75 @@ class Manager
     // --------------------------------------------------------------------------
 
     /**
+     * Checks the supplied migration Pipelines' connectors
+     *
+     * @param Pipeline[] $aPipelines The Pipelines to check
+     *
+     * @return $this
+     */
+    public function checkConnectors(array $aPipelines): self
+    {
+        $this->aWarnings = [];
+        foreach ($aPipelines as $oPipeline) {
+
+            $this->logln('Testing Pipeline <info>' . get_class($oPipeline) . '</info>');
+
+            $this->logln('Testing source connector:');
+            $oConnector = $oPipeline->getSourceConnector();
+
+            try {
+
+                $this->log(' – Can connect... ');
+                $oConnector->connect();
+                $this->logln('<info>yes</info>');
+                $oConnector->disconnect();
+
+            } catch (\Exception $e) {
+                $this->logln('<info>no</info>');
+                $this->aWarnings[] = sprintf(
+                    '[<info>%s</info>] source connector failed to connect: %s',
+                    get_class($oPipeline),
+                    $e->getMessage()
+                );
+            }
+
+            $this->logln('Testing target connector:');
+            $oConnector = $oPipeline->getSourceConnector();
+
+            try {
+
+                $this->log(' – Can connect... ');
+                $oConnector->connect();
+                $this->logln('<info>yes</info>');
+                $oConnector->disconnect();
+
+            } catch (\Exception $e) {
+                $this->logln('<info>no</info>');
+                $this->aWarnings[] = sprintf(
+                    '[<info>%s</info>] target connector failed to connect: %s',
+                    get_class($oPipeline),
+                    $e->getMessage()
+                );
+            }
+
+            $this->log(' – Supports transactions... ');
+            if ($oConnector->supportsTransactions()) {
+                $this->logln('<info>yes</info>');
+            } else {
+                $this->logln('<info>no</info>');
+                $this->aWarnings[] = sprintf(
+                    '[<info>%s</info>] target connector does not support transactions, so errors cannot be rolled back automatically.',
+                    get_class($oPipeline),
+                );
+            }
+        }
+
+        return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
      * Prepares the supplied migration Pipelines
      *
      * @param Pipeline[] $aPipelines The Pipelines to run
@@ -178,6 +254,7 @@ class Manager
     public function prepare(array $aPipelines): self
     {
         $this->aPipelineCache = [];
+        $this->aWarnings      = [];
         $this->aPrepareErrors = [];
         foreach ($aPipelines as $oPipeline) {
             $this->preparePipeline($oPipeline);
@@ -197,6 +274,8 @@ class Manager
      */
     public function commit(array $aPipelines)
     {
+        $this->aWarnings     = [];
+        $this->aCommitErrors = [];
         foreach ($aPipelines as $oPipeline) {
             $this->commitPipeline($oPipeline);
         }
@@ -223,13 +302,12 @@ class Manager
         $oConnectorSource = $oPipeline->getSourceConnector();
         $oRecipe          = $oPipeline->getRecipe();;
 
-        $this->connectConnector($oConnectorSource);
+        $this->connectConnector($oConnectorSource, 'source');
 
         /** @var Unit $oUnit */
         foreach ($oConnectorSource->read() as $oUnit) {
 
             try {
-                $this->log(' – Preparing source item <info>#' . $oUnit->getSourceId() . '</info>... ');
 
                 if (!$oUnit instanceof Unit) {
                     throw new \InvalidArgumentException(
@@ -239,7 +317,12 @@ class Manager
                             gettype($oUnit)
                         )
                     );
+
+                } elseif (!$oUnit->shouldMigrate()) {
+                    continue;
                 }
+
+                $this->log(' – Preparing source item <info>#' . $oUnit->getSourceId() . '</info>... ');
 
                 $oUnit
                     ->applyRecipe($oRecipe);
@@ -255,27 +338,16 @@ class Manager
 
             } catch (\Exception $e) {
                 $this->logln('<error>' . $e->getMessage() . '</error>');
-                $this->aPrepareErrors[] = (object) [
-                    'pipeline'  => $sPipeline,
-                    'source_id' => $oUnit->getSourceId(),
-                    'error'     => $e->getMessage(),
-                ];
+
+                $this->aPrepareErrors[] = (new PrepareException($e->getMessage(), $e->getCode(), $e))
+                    ->setPipeline($oPipeline)
+                    ->setUnit($oUnit);
             }
         }
 
         $this->logln();
 
         return $this;
-    }
-
-    // --------------------------------------------------------------------------
-
-    /**
-     * @return array
-     */
-    public function getPrepareErrors(): array
-    {
-        return $this->aPrepareErrors;
     }
 
     // --------------------------------------------------------------------------
@@ -290,7 +362,7 @@ class Manager
     protected function commitPipeline(Pipeline $oPipeline): self
     {
         $sPipeline = get_class($oPipeline);
-        $this->log('Committing pipeline: <info>' . $sPipeline . '</info>... ');
+        $this->logln('Committing pipeline: <info>' . $sPipeline . '</info>... ');
 
         if ($this->isDryRun()) {
             return $this->logln('<warning>Dry Run - not comitting</warning>');
@@ -301,9 +373,11 @@ class Manager
         }
 
         $oConnectorTarget = $oPipeline->getTargetConnector();
-        $this->connectConnector($oConnectorTarget);
+        $this->connectConnector($oConnectorTarget, 'target');
 
         rewind($this->aPipelineCache[$sPipeline]);
+
+        //  @todo (Pablo - 2020-06-19) - Start a transaction, if supported
 
         while (($buffer = fgets($this->aPipelineCache[$sPipeline])) !== false) {
 
@@ -317,7 +391,17 @@ class Manager
 
             } catch (\Exception $e) {
                 $this->logln('<error>' . $e->getMessage() . '</error>');
+
+                $this->aCommitErrors[] = (new CommitException($e->getMessage(), $e->getCode(), $e))
+                    ->setPipeline($oPipeline)
+                    ->setUnit($oUnit);
             }
+        }
+
+        if (empty($this->aCommitErrors)) {
+            //  @todo (Pablo - 2020-06-19) - Commit transaction, if supported
+        } else {
+            //  @todo (Pablo - 2020-06-19) - rollback transaction, if supported
         }
 
         $this->logln();
@@ -331,15 +415,18 @@ class Manager
      * Connects a connector
      *
      * @param Connector $oConnector The connector to connect
+     * @param string    $sLabel     The log friendly label for this connector
      *
      * @return $this
      * @throws \Exception
      */
-    protected function connectConnector(Connector $oConnector): self
+    protected function connectConnector(Connector $oConnector, string $sLabel): self
     {
         try {
 
+            $this->log(' – Connecting to ' . $sLabel . '... ');
             $oConnector->connect();
+            $this->logln('<info>connected</info>');
 
         } catch (\Exception $e) {
             $this
@@ -349,5 +436,41 @@ class Manager
         }
 
         return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Returns any warnings which have been generated
+     *
+     * @return string[]
+     */
+    public function getWarnings(): array
+    {
+        return $this->aWarnings;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Returns any errors encountered during preparation
+     *
+     * @return PrepareException[]
+     */
+    public function getPrepareErrors(): array
+    {
+        return $this->aPrepareErrors;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Returns any errors encountered during commimt
+     *
+     * @return CommitException[]
+     */
+    public function getCommitErrors(): array
+    {
+        return $this->aCommitErrors;
     }
 }
