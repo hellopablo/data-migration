@@ -2,7 +2,9 @@
 
 namespace HelloPablo\DataMigration;
 
+use HelloPablo\DataMigration\IdMapper\Callback;
 use HelloPablo\DataMigration\Interfaces;
+use HelloPablo\DataMigration\Interfaces\Pipeline;
 
 /**
  * Class Unit
@@ -125,13 +127,13 @@ class Unit implements \HelloPablo\DataMigration\Interfaces\Unit
     // --------------------------------------------------------------------------
 
     /**
-     * Determines if the itme should be migrated
+     * Determines if an item is migrated; returns the item's ID if so, null if not
      *
-     * @return bool
+     * @param Pipeline $oPipeline The pipeline being migrated
      */
-    public function shouldMigrate(Interfaces\Pipeline $oPipeline): bool
+    public function isMigrated(Interfaces\Pipeline $oPipeline)
     {
-        return true;
+        return null;
     }
 
     // --------------------------------------------------------------------------
@@ -207,6 +209,14 @@ class Unit implements \HelloPablo\DataMigration\Interfaces\Unit
      */
     public function toArray(): array
     {
-        return (array) $this->oTarget;
+        return array_map(
+            function ($mValue) {
+                if ($mValue instanceof Callback) {
+                    return (string) $mValue ?: null;
+                }
+                return $mValue;
+            },
+            (array) $this->oTarget
+        );
     }
 }

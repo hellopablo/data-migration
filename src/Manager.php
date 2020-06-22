@@ -294,6 +294,7 @@ class Manager
      */
     public function prepare(array $aPipelines): self
     {
+        IdMapper::reset();
         $this->aPipelineCache = [];
         $this->aWarnings      = [];
         $this->aPrepareErrors = [];
@@ -379,7 +380,27 @@ class Manager
                         )
                     );
 
-                } elseif (!$oUnit->shouldMigrate($oPipeline)) {
+                }
+
+                $mMigratedId = $oUnit->isMigrated($oPipeline);
+
+                if ($mMigratedId) {
+
+                    $this
+                        ->logln(
+                            sprintf(
+                                ' – Source item with ID <info>#%s</info> already migrated; target ID <info>#%s</info>',
+                                $oUnit->getSourceId(),
+                                $mMigratedId
+                            )
+                        );
+
+                    IdMapper::add(
+                        get_class($oPipeline),
+                        $oUnit->getSourceId(),
+                        $mMigratedId
+                    );
+
                     continue;
                 }
 
@@ -457,6 +478,12 @@ class Manager
                 $this->log(' – Committing source item <info>#' . $oUnit->getSourceId() . '</info>... ');
                 $oConnectorTarget->write($oUnit);
                 $this->logln('<info>done</info>; target ID is <info>#' . $oUnit->getTargetId() . '</info>');
+
+                IdMapper::add(
+                    get_class($oPipeline),
+                    $oUnit->getSourceId(),
+                    $oUnit->getTargetId()
+                );
 
             } catch (\Exception $e) {
                 $this->logln('<error>' . $e->getMessage() . '</error>');

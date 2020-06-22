@@ -86,13 +86,11 @@ interface Unit
     // --------------------------------------------------------------------------
 
     /**
-     * Determines if the itme should be migrated
+     * Determines if an item is migrated; returns the item's ID if so, null if not
      *
      * @param Pipeline $oPipeline The pipeline being migrated
-     *
-     * @return bool
      */
-    public function shouldMigrate(Pipeline $oPipeline): bool;
+    public function isMigrated(Pipeline $oPipeline);
 
     // --------------------------------------------------------------------------
 
