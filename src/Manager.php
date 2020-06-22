@@ -379,7 +379,7 @@ class Manager
                         )
                     );
 
-                } elseif (!$oUnit->shouldMigrate()) {
+                } elseif (!$oUnit->shouldMigrate($oPipeline)) {
                     continue;
                 }
 

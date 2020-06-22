@@ -129,7 +129,7 @@ class Unit implements \HelloPablo\DataMigration\Interfaces\Unit
      *
      * @return bool
      */
-    public function shouldMigrate(): bool
+    public function shouldMigrate(Interfaces\Pipeline $oPipeline): bool
     {
         return true;
     }

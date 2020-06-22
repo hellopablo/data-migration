@@ -88,9 +88,11 @@ interface Unit
     /**
      * Determines if the itme should be migrated
      *
+     * @param Pipeline $oPipeline The pipeline being migrated
+     *
      * @return bool
      */
-    public function shouldMigrate(): bool;
+    public function shouldMigrate(Pipeline $oPipeline): bool;
 
     // --------------------------------------------------------------------------
 
