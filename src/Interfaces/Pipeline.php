@@ -10,6 +10,13 @@ namespace HelloPablo\DataMigration\Interfaces;
 interface Pipeline
 {
     /**
+     * Returns the priority of the pipeline, lower priority will run first
+     *
+     * @return int
+     */
+    public static function getPriority(): int;
+
+    /**
      * Returns the connector to use for the data source
      *
      * @return Connector

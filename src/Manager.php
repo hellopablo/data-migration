@@ -297,6 +297,9 @@ class Manager
         $this->aPipelineCache = [];
         $this->aWarnings      = [];
         $this->aPrepareErrors = [];
+
+        $this->sortPipelines($aPipelines);
+
         foreach ($aPipelines as $oPipeline) {
             $this->preparePipeline($oPipeline);
         }
@@ -317,11 +320,28 @@ class Manager
     {
         $this->aWarnings     = [];
         $this->aCommitErrors = [];
+
+        $this->sortPipelines($aPipelines);
+
         foreach ($aPipelines as $oPipeline) {
             $this->commitPipeline($oPipeline);
         }
 
         return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Sorts pipelines by their priority
+     *
+     * @param array $aPipelines The Pipelines to sort
+     */
+    protected function sortPipelines(array &$aPipelines)
+    {
+        usort($aPipelines, function (Pipeline $oA, Pipeline $oB) {
+            return $oA::getPriority() <=> $oB::getPriority();
+        });
     }
 
     // --------------------------------------------------------------------------
