@@ -86,6 +86,13 @@ interface Unit
     // --------------------------------------------------------------------------
 
     /**
+     * Tests whether the unit should be migrated
+     */
+    public function shouldMigrate(): void;
+
+    // --------------------------------------------------------------------------
+
+    /**
      * Determines if an item is migrated; returns the item's ID if so, null if not
      *
      * @param Pipeline $oPipeline The pipeline being migrated

@@ -127,6 +127,19 @@ class Unit implements \HelloPablo\DataMigration\Interfaces\Unit
     // --------------------------------------------------------------------------
 
     /**
+     * Tests whether the unit should be migrated
+     */
+    public function shouldMigrate(): void
+    {
+        /**
+         * Throw an exception if the unit should _not_ be migrated. The exception
+         * message will be logged
+         */
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
      * Determines if an item is migrated; returns the item's ID if so, null if not
      *
      * @param Pipeline $oPipeline The pipeline being migrated

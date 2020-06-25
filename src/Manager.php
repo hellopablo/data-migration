@@ -382,15 +382,33 @@ class Manager
 
                 }
 
+                $this->log(' – Preparing source item <info>#' . $oUnit->getSourceId() . '</info>... ');
+
+                try {
+
+                    $oUnit->shouldMigrate();
+
+                } catch (\Exception $e) {
+                    $this
+                        ->logln()
+                        ->logln(
+                            sprintf(
+                                '   ↳  Item should not be migrated: <info>%s</info>',
+                                $e->getMessage()
+                            )
+                        );
+                    continue;
+                }
+
                 $mMigratedId = $oUnit->isMigrated($oPipeline);
 
                 if ($mMigratedId) {
 
                     $this
+                        ->logln()
                         ->logln(
                             sprintf(
-                                ' – Source item with ID <info>#%s</info> already migrated; target ID <info>#%s</info>',
-                                $oUnit->getSourceId(),
+                                '  ↳ Item lready migrated; target ID <info>#%s</info>',
                                 $mMigratedId
                             )
                         );
@@ -403,8 +421,6 @@ class Manager
 
                     continue;
                 }
-
-                $this->log(' – Preparing source item <info>#' . $oUnit->getSourceId() . '</info>... ');
 
                 $oUnit
                     ->applyRecipe($oRecipe);
