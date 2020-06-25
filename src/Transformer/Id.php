@@ -18,8 +18,21 @@ class Id extends Copy
 
     // --------------------------------------------------------------------------
 
-    public function __construct(string $sSourceProperty = null, string $sTargetProperty = null, string $sPipeline = null)
-    {
+    /**
+     * Id constructor.
+     *
+     * @param string|null $sSourceProperty
+     * @param string|null $sTargetProperty
+     * @param string|null $sPipeline
+     *
+     * @throws DataMigrationException
+     */
+    public function __construct(
+        string $sSourceProperty = null,
+        string $sTargetProperty = null,
+        string $sPipeline = null
+    ) {
+
         parent::__construct($sSourceProperty, $sTargetProperty);
 
         if (
