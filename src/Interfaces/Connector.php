@@ -46,6 +46,15 @@ interface Connector
     // --------------------------------------------------------------------------
 
     /**
+     * Counts the expected number of operations
+     *
+     * @return int
+     */
+    public function count(): int;
+
+    // --------------------------------------------------------------------------
+
+    /**
      * Reads records from the data source
      *
      * @return \Generator

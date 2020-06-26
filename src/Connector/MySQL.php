@@ -151,6 +151,25 @@ class MySQL implements Connector
     // --------------------------------------------------------------------------
 
     /**
+     * Counts the expected number of operations
+     *
+     * @return int
+     */
+    public function count(): int
+    {
+        $oStatement = $this->oPdo->query(
+            sprintf(
+                static::READ_QUERY,
+                $this->sTable
+            )
+        );
+
+        return $oStatement->rowCount();
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
      * Reads records from the data source
      *
      * @return \Generator

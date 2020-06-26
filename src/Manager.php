@@ -7,6 +7,8 @@ use HelloPablo\DataMigration\Interfaces\Pipeline;
 use HelloPablo\DataMigration\Interfaces\Unit;
 use HelloPablo\DataMigration\Exception\PipelineException\CommitException;
 use HelloPablo\DataMigration\Exception\PipelineException\PrepareException;
+use Nails\Common\Service\Output;
+use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
@@ -16,6 +18,11 @@ use Symfony\Component\Console\Output\OutputInterface;
  */
 class Manager
 {
+    /** @var string */
+    const PROGRESS_BAR_FORMAT = ' %current%/%max% [%bar%] %percent:3s%%; %remaining:6s% remaining; %memory:6s%' . PHP_EOL;
+
+    // --------------------------------------------------------------------------
+
     /** @var OutputInterface|null */
     protected $oOutputInterface;
 
@@ -301,8 +308,32 @@ class Manager
 
         $this->sortPipelines($aPipelines);
 
+        if ($this->getOutputInterface()->getVerbosity() === OutputInterface::VERBOSITY_NORMAL) {
+
+            $this
+                ->logln('Preparing pipelines...')
+                ->logln();
+
+            $iTotalOperations = 0;
+            foreach ($aPipelines as $oPipeline) {
+                $oConnector = $oPipeline->getSourceConnector();
+                $oConnector->connect();
+                $iTotalOperations += $oConnector->count();
+                $oConnector->disconnect();
+            }
+
+            $oProgressBar = new ProgressBar($this->getOutputInterface(), $iTotalOperations);
+            $oProgressBar->setFormat(static::PROGRESS_BAR_FORMAT);
+            $oProgressBar->start();
+        }
+
         foreach ($aPipelines as $oPipeline) {
-            $this->preparePipeline($oPipeline);
+            $this->preparePipeline($oPipeline, $oProgressBar ?? null);
+        }
+
+        if (!empty($oProgressBar)) {
+            $oProgressBar->finish();
+            $this->logln();
         }
 
         return $this;
@@ -324,8 +355,29 @@ class Manager
 
         $this->sortPipelines($aPipelines);
 
+        if ($this->getOutputInterface()->getVerbosity() === OutputInterface::VERBOSITY_NORMAL) {
+
+            $this
+                ->logln('Committing pipelines...')
+                ->logln();
+
+            $iTotalOperations = 0;
+            foreach ($aPipelines as $oPipeline) {
+                $iTotalOperations += $this->countLines($oPipeline);
+            }
+
+            $oProgressBar = new ProgressBar($this->getOutputInterface(), $iTotalOperations);
+            $oProgressBar->setFormat(static::PROGRESS_BAR_FORMAT);
+            $oProgressBar->start();
+        }
+
         foreach ($aPipelines as $oPipeline) {
-            $this->commitPipeline($oPipeline);
+            $this->commitPipeline($oPipeline, $oProgressBar ?? null);
+        }
+
+        if (!empty($oProgressBar)) {
+            $oProgressBar->finish();
+            $this->logln();
         }
 
         return $this;
@@ -350,14 +402,15 @@ class Manager
     /**
      * Executes a Pipeline
      *
-     * @param Pipeline $oPipeline The pipeline to execute
+     * @param Pipeline         $oPipeline    The pipeline to execute
+     * @param ProgressBar|null $oProgressBar The progress bar object, if using one
      *
      * @return $this
      */
-    protected function preparePipeline(Pipeline $oPipeline): self
+    protected function preparePipeline(Pipeline $oPipeline, ?ProgressBar $oProgressBar): self
     {
         $sPipeline = get_class($oPipeline);
-        $this->logln('Preparing pipeline: <info>' . $sPipeline . '</info>... ');
+        $this->logln('Preparing pipeline: <info>' . $sPipeline . '</info>... ', OutputInterface::VERBOSITY_VERBOSE);
 
         $this->aPipelineCache[$sPipeline] = fopen($this->getCacheDir() . uniqid(), 'w+');
 
@@ -382,7 +435,10 @@ class Manager
 
                 }
 
-                $this->log(' – Preparing source item <info>#' . $oUnit->getSourceId() . '</info>... ');
+                $this->log(
+                    ' – Preparing source item <info>#' . $oUnit->getSourceId() . '</info>... ',
+                    OutputInterface::VERBOSITY_VERBOSE
+                );
 
                 try {
 
@@ -390,12 +446,13 @@ class Manager
 
                 } catch (\Exception $e) {
                     $this
-                        ->logln()
+                        ->logln('', OutputInterface::VERBOSITY_VERBOSE)
                         ->logln(
                             sprintf(
                                 '   ↳  Item should not be migrated: <info>%s</info>',
                                 $e->getMessage()
-                            )
+                            ),
+                            OutputInterface::VERBOSITY_VERBOSE
                         );
                     continue;
                 }
@@ -405,12 +462,13 @@ class Manager
                 if ($mMigratedId) {
 
                     $this
-                        ->logln()
+                        ->logln('', OutputInterface::VERBOSITY_VERBOSE)
                         ->logln(
                             sprintf(
                                 '  ↳ Item lready migrated; target ID <info>#%s</info>',
                                 $mMigratedId
-                            )
+                            ),
+                            OutputInterface::VERBOSITY_VERBOSE
                         );
 
                     IdMapper::add(
@@ -440,10 +498,11 @@ class Manager
                     str_replace("\n", '\\\n', serialize($oUnit)) . PHP_EOL
                 );
 
-                $this->logln('<info>done</info>');
+                $this->logln('<info>done</info>', OutputInterface::VERBOSITY_VERBOSE);
 
             } catch (\Exception $e) {
-                $this->logln('<error>' . $e->getMessage() . '</error>');
+
+                $this->logln('<error>' . $e->getMessage() . '</error>', OutputInterface::VERBOSITY_VERBOSE);
 
                 $this->aPrepareErrors[] = (new PrepareException(
                     $e->getMessage(),
@@ -452,10 +511,15 @@ class Manager
                 ))
                     ->setPipeline($oPipeline)
                     ->setUnit($oUnit);
+
+            } finally {
+                if ($oProgressBar) {
+                    $oProgressBar->advance();
+                }
             }
         }
 
-        $this->logln();
+        $this->logln('', OutputInterface::VERBOSITY_VERBOSE);
 
         return $this;
     }
@@ -465,21 +529,23 @@ class Manager
     /**
      * Commits a Pipeline
      *
-     * @param Pipeline $oPipeline The pipeline to commit
+     * @param Pipeline         $oPipeline    The pipeline to commit
+     * @param ProgressBar|null $oProgressBar The progress bar object, if using one
      *
      * @return $this
      */
-    protected function commitPipeline(Pipeline $oPipeline): self
+    protected function commitPipeline(Pipeline $oPipeline, ?ProgressBar $oProgressBar): self
     {
         $sPipeline = get_class($oPipeline);
-        $this->logln('Committing pipeline: <info>' . $sPipeline . '</info>... ');
+        $this->logln('Committing pipeline: <info>' . $sPipeline . '</info>... ', OutputInterface::VERBOSITY_VERBOSE);
 
         if ($this->isDryRun()) {
-            return $this->logln('<bg=yellow;options=bold>Dry Run - not comitting</>');
+            return $this
+                ->logln('<bg=yellow;options=bold>Dry Run - not comitting</>', OutputInterface::VERBOSITY_VERBOSE);
         }
 
         if (!array_key_exists(get_class($oPipeline), $this->aPipelineCache)) {
-            return $this->log('<error>No cachefile available</error>');
+            return $this->log('<error>No cachefile available</error>', OutputInterface::VERBOSITY_VERBOSE);
         }
 
         $oConnectorTarget = $oPipeline->getTargetConnector();
@@ -495,9 +561,9 @@ class Manager
 
             try {
 
-                $this->log(' – Committing source item <info>#' . $oUnit->getSourceId() . '</info>... ');
+                $this->log(' – Committing source item <info>#' . $oUnit->getSourceId() . '</info>... ', OutputInterface::VERBOSITY_VERBOSE);
                 $oConnectorTarget->write($oUnit);
-                $this->logln('<info>done</info>; target ID is <info>#' . $oUnit->getTargetId() . '</info>');
+                $this->logln('<info>done</info>; target ID is <info>#' . $oUnit->getTargetId() . '</info>', OutputInterface::VERBOSITY_VERBOSE);
 
                 IdMapper::add(
                     get_class($oPipeline),
@@ -506,7 +572,7 @@ class Manager
                 );
 
             } catch (\Exception $e) {
-                $this->logln('<error>' . $e->getMessage() . '</error>');
+                $this->logln('<error>' . $e->getMessage() . '</error>', OutputInterface::VERBOSITY_VERBOSE);
 
                 $this->aCommitErrors[] = (new CommitException(
                     $e->getMessage(),
@@ -515,6 +581,10 @@ class Manager
                 ))
                     ->setPipeline($oPipeline)
                     ->setUnit($oUnit);
+            } finally {
+                if ($oProgressBar) {
+                    $oProgressBar->advance();
+                }
             }
         }
 
@@ -524,9 +594,34 @@ class Manager
             //  @todo (Pablo - 2020-06-19) - rollback transaction, if supported
         }
 
-        $this->logln();
+        $this->logln('', OutputInterface::VERBOSITY_VERBOSE);
 
         return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * counts the number of lines in a file
+     *
+     * @param $sFile The file to read
+     *
+     * @return int
+     * @link https://stackoverflow.com/a/20537130
+     */
+    protected function countLines(Pipeline $oPipeline)
+    {
+        $sPipeline = get_class($oPipeline);
+
+        rewind($this->aPipelineCache[$sPipeline]);
+
+        $iLines = 0;
+
+        while (!feof($this->aPipelineCache[$sPipeline])) {
+            $iLines += substr_count(fread($this->aPipelineCache[$sPipeline], 8192), "\n");
+        }
+
+        return $iLines;
     }
 
     // --------------------------------------------------------------------------
@@ -544,14 +639,14 @@ class Manager
     {
         try {
 
-            $this->log(' – Connecting to ' . $sLabel . '... ');
+            $this->log(' – Connecting to ' . $sLabel . '... ', OutputInterface::VERBOSITY_VERBOSE);
             $oConnector->connect();
-            $this->logln('<info>connected</info>');
+            $this->logln('<info>connected</info>', OutputInterface::VERBOSITY_VERBOSE);
 
         } catch (\Exception $e) {
             $this
-                ->logln('<error>error</error>')
-                ->logln('<error>' . $e->getMessage() . '</error>');
+                ->logln('<error>error</error>', OutputInterface::VERBOSITY_VERBOSE)
+                ->logln('<error>' . $e->getMessage() . '</error>', OutputInterface::VERBOSITY_VERBOSE);
             throw $e;
         }
 
