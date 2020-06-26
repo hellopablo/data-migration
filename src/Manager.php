@@ -445,7 +445,11 @@ class Manager
             } catch (\Exception $e) {
                 $this->logln('<error>' . $e->getMessage() . '</error>');
 
-                $this->aPrepareErrors[] = (new PrepareException($e->getMessage(), $e->getCode(), $e))
+                $this->aPrepareErrors[] = (new PrepareException(
+                    $e->getMessage(),
+                    is_numeric($e->getCode()) ? $e->getCode() : null,
+                    $e
+                ))
                     ->setPipeline($oPipeline)
                     ->setUnit($oUnit);
             }
