@@ -68,7 +68,11 @@ class Date extends Copy
     {
         try {
 
-            $oDate = new \DateTime(parent::transform($mInput, $oUnit));
+            if (is_numeric($mInput)) {
+                $oDate = new \DateTime('@' . parent::transform($mInput, $oUnit));
+            } else {
+                $oDate = new \DateTime(parent::transform($mInput, $oUnit));
+            }
             return $oDate->format($this->sFormat);
 
         } catch (\Exception $e) {
