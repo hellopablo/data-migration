@@ -504,7 +504,11 @@ class Manager
             } catch (\Exception $e) {
                 $this->logln('<error>' . $e->getMessage() . '</error>');
 
-                $this->aCommitErrors[] = (new CommitException($e->getMessage(), $e->getCode(), $e))
+                $this->aCommitErrors[] = (new CommitException(
+                    $e->getMessage(),
+                    is_numeric($e->getCode()) ? $e->getCode() : null,
+                    $e
+                ))
                     ->setPipeline($oPipeline)
                     ->setUnit($oUnit);
             }
