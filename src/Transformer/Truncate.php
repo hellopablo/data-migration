@@ -58,11 +58,13 @@ class Truncate extends Copy
                     return $sString;
 
                 } else {
-                    return preg_replace('/[^a-zA-Z0-9\'"]$/', '', $sString) . $this->sEllipsis;
+                    return preg_replace('/[' . preg_quote(',;:\'\\/"', '/') . ']$/', '', $sString) . $this->sEllipsis;
                 }
             }
 
             $sString .= ' ' . $sChunk;
         }
+
+        return $sString;
     }
 }
