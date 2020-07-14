@@ -32,6 +32,9 @@ class Manager
     /** @var bool */
     protected $bDryRun = false;
 
+    /** @var bool */
+    protected $bStopOnError = false;
+
     /** @var string|null */
     protected $sCacheDir;
 
@@ -149,6 +152,33 @@ class Manager
     public function isDryRun(): bool
     {
         return $this->bDryRun;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Set error mode
+     *
+     * @param bool $bStopOnError Whether to turn stop on error, or summarrise errors
+     *
+     * @return $this
+     */
+    public function setStopOnError(bool $bStopOnError): self
+    {
+        $this->bStopOnError = $bStopOnError;
+        return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Whether the system will stop on error
+     *
+     * @return bool
+     */
+    public function isStopOnError(): bool
+    {
+        return $this->bStopOnError;
     }
 
     // --------------------------------------------------------------------------
@@ -366,6 +396,11 @@ class Manager
                 $iTotalOperations += $this->countLines($oPipeline);
             }
 
+            if (empty($iTotalOperations)) {
+                $this->logln('Nothing to commit.');
+                return $this;
+            }
+
             $oProgressBar = new ProgressBar($this->getOutputInterface(), $iTotalOperations);
             $oProgressBar->setFormat(static::PROGRESS_BAR_FORMAT);
             $oProgressBar->start();
@@ -504,13 +539,19 @@ class Manager
 
                 $this->logln('<error>' . $e->getMessage() . '</error>', OutputInterface::VERBOSITY_VERBOSE);
 
-                $this->aPrepareErrors[] = (new PrepareException(
+                $oException = (new PrepareException(
                     $e->getMessage(),
                     is_numeric($e->getCode()) ? $e->getCode() : null,
                     $e
                 ))
                     ->setPipeline($oPipeline)
                     ->setUnit($oUnit);
+
+                if ($this->isStopOnError()) {
+                    throw $oException;
+                } else {
+                    $this->aPrepareErrors[] = $oException;
+                }
 
             } finally {
                 if ($oProgressBar) {
@@ -572,15 +613,28 @@ class Manager
                 );
 
             } catch (\Exception $e) {
+
                 $this->logln('<error>' . $e->getMessage() . '</error>', OutputInterface::VERBOSITY_VERBOSE);
 
-                $this->aCommitErrors[] = (new CommitException(
-                    $e->getMessage(),
+                $oException = (new CommitException(
+                    sprintf(
+                        '[%s] ID: %s – %s',
+                        $sPipeline,
+                        $oUnit->getSourceId(),
+                        $e->getMessage()
+                    ),
                     is_numeric($e->getCode()) ? $e->getCode() : null,
                     $e
                 ))
                     ->setPipeline($oPipeline)
                     ->setUnit($oUnit);
+
+                if ($this->isStopOnError()) {
+                    throw $oException;
+                } else {
+                    $this->aCommitErrors[] = $oException;
+                }
+
             } finally {
                 if ($oProgressBar) {
                     $oProgressBar->advance();
