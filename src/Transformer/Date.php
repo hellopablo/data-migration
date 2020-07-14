@@ -25,6 +25,17 @@ class Date extends Copy
      */
     protected $oDefault;
 
+    /**
+     * An array of common, but invalid, datetime formats
+     *
+     * @var stirng[]
+     */
+    protected $aInvalidFormats = [
+        '',
+        '0000-00-00',
+        '0000-00-00 00:00:00',
+    ];
+
     // --------------------------------------------------------------------------
 
     /**
@@ -68,11 +79,19 @@ class Date extends Copy
     {
         try {
 
-            if (is_numeric($mInput)) {
+            if (in_array($mInput, $this->aInvalidFormats)) {
+                throw new \InvalidArgumentException(
+                    sprintf(
+                        '"%s" is not a valid date format',
+                        $mInput
+                    )
+                );
+            } elseif (is_numeric($mInput)) {
                 $oDate = new \DateTime('@' . parent::transform($mInput, $oUnit));
             } else {
                 $oDate = new \DateTime(parent::transform($mInput, $oUnit));
             }
+
             return $oDate->format($this->sFormat);
 
         } catch (\Exception $e) {
