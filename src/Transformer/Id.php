@@ -41,7 +41,7 @@ class Id extends Copy
             || !in_array(Interfaces\Pipeline::class, class_implements($sPipeline))
         ) {
             throw new DataMigrationException(
-                'Pipeline must be in instance of ' . Interfaces\Pipeline::class
+                'Pipeline must be an instance of ' . Interfaces\Pipeline::class
             );
         }
 
