@@ -17,8 +17,8 @@ use Symfony\Component\Console\Output\OutputInterface;
  */
 class Manager
 {
-    /** @var string */
-    const PROGRESS_BAR_FORMAT = ' [%bar%] %percent:3s%% (%current%/%max%) – %remaining:6s% remaining [<info>%message%</info>]';
+    const PROGRESS_BAR_FORMAT_TOTAL = ' [<info>%message%</info>]' . PHP_EOL . ' [%bar%] %percent:3s%% (%current%/%max%) – %remaining:6s% remaining' . PHP_EOL . PHP_EOL . ' [<info>Pipeline Progress</info>] ';
+    const PROGRESS_BAR_FORMAT       = ' [%bar%] %percent:3s%% [<info>%message%</info>]';
 
     // --------------------------------------------------------------------------
 
@@ -345,7 +345,7 @@ class Manager
 
             $iTotalOperations = 0;
             $aProgressBars    = [
-                'total' => $this->getProgressBar(0, 'Overall Progress'),
+                'total' => $this->getProgressBar(0, 'Overall Progress', static::PROGRESS_BAR_FORMAT_TOTAL),
             ];
 
             foreach ($aPipelines as $oPipeline) {
@@ -390,11 +390,11 @@ class Manager
 
     // --------------------------------------------------------------------------
 
-    protected function getProgressBar(int $iTotalOperations, string $sMessage): ProgressBar
+    protected function getProgressBar(int $iTotalOperations, string $sMessage, string $sFormat = null): ProgressBar
     {
         $oProgressBar = new ProgressBar($this->getOutputInterface()->section(), $iTotalOperations);
         $oProgressBar->setMessage($sMessage);
-        $oProgressBar->setFormat(static::PROGRESS_BAR_FORMAT);
+        $oProgressBar->setFormat($sFormat ?? static::PROGRESS_BAR_FORMAT);
         return $oProgressBar;
     }
 
@@ -422,7 +422,7 @@ class Manager
 
             $iTotalOperations = 0;
             $aProgressBars    = [
-                'total' => $this->getProgressBar(0, 'Overall Progress'),
+                'total' => $this->getProgressBar(0, 'Overall Progress', static::PROGRESS_BAR_FORMAT_TOTAL),
             ];
 
             foreach ($aPipelines as $oPipeline) {
