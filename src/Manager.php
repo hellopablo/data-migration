@@ -2,12 +2,11 @@
 
 namespace HelloPablo\DataMigration;
 
+use HelloPablo\DataMigration\Exception\PipelineException\CommitException;
+use HelloPablo\DataMigration\Exception\PipelineException\PrepareException;
 use HelloPablo\DataMigration\Interfaces\Connector;
 use HelloPablo\DataMigration\Interfaces\Pipeline;
 use HelloPablo\DataMigration\Interfaces\Unit;
-use HelloPablo\DataMigration\Exception\PipelineException\CommitException;
-use HelloPablo\DataMigration\Exception\PipelineException\PrepareException;
-use Nails\Common\Service\Output;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -19,7 +18,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 class Manager
 {
     /** @var string */
-    const PROGRESS_BAR_FORMAT = ' %current%/%max% [%bar%] %percent:3s%%; %remaining:6s% remaining; %memory:6s%' . PHP_EOL;
+    const PROGRESS_BAR_FORMAT = ' [%bar%] %percent:3s%% (%current%/%max%) – %remaining:6s% remaining [<info>%message%</info>]';
 
     // --------------------------------------------------------------------------
 
@@ -345,28 +344,58 @@ class Manager
                 ->logln();
 
             $iTotalOperations = 0;
+            $aProgressBars    = [
+                'total' => $this->getProgressBar(0, 'Overall Progress'),
+            ];
+
             foreach ($aPipelines as $oPipeline) {
+
                 $oConnector = $oPipeline->getSourceConnector();
                 $oConnector->connect();
-                $iTotalOperations += $oConnector->count();
+                $iPipelineCount   = $oConnector->count();
+                $iTotalOperations += $iPipelineCount;
                 $oConnector->disconnect();
+
+                if (count($aPipelines) > 1) {
+                    $aProgressBars[get_class($oPipeline)] = $this->getProgressBar(
+                        $iPipelineCount,
+                        get_class($oPipeline)
+                    );
+                }
             }
 
-            $oProgressBar = new ProgressBar($this->getOutputInterface(), $iTotalOperations);
-            $oProgressBar->setFormat(static::PROGRESS_BAR_FORMAT);
-            $oProgressBar->start();
+            $aProgressBars['total']->setMaxSteps($iTotalOperations);
+
+            foreach ($aProgressBars as $oProgressBar) {
+                $oProgressBar->start();
+            }
         }
 
+        //  Prepare pipelines
         foreach ($aPipelines as $oPipeline) {
-            $this->preparePipeline($oPipeline, $oProgressBar ?? null);
+            $this->preparePipeline(
+                $oPipeline,
+                $aProgressBars['total'] ?? null,
+                $aProgressBars[get_class($oPipeline)] ?? null
+            );
         }
 
-        if (!empty($oProgressBar)) {
-            $oProgressBar->finish();
+        if (!empty($aProgressBars['total'])) {
+            $aProgressBars['total']->finish();
             $this->logln();
         }
 
         return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    protected function getProgressBar(int $iTotalOperations, string $sMessage): ProgressBar
+    {
+        $oProgressBar = new ProgressBar($this->getOutputInterface()->section(), $iTotalOperations);
+        $oProgressBar->setMessage($sMessage);
+        $oProgressBar->setFormat(static::PROGRESS_BAR_FORMAT);
+        return $oProgressBar;
     }
 
     // --------------------------------------------------------------------------
@@ -392,26 +421,44 @@ class Manager
                 ->logln();
 
             $iTotalOperations = 0;
+            $aProgressBars    = [
+                'total' => $this->getProgressBar(0, 'Overall Progress'),
+            ];
+
             foreach ($aPipelines as $oPipeline) {
-                $iTotalOperations += $this->countLines($oPipeline);
+                $iPipelineCount   = $this->countLines($oPipeline);
+                $iTotalOperations += $iPipelineCount;
+
+                if (count($aPipelines) > 1) {
+                    $aProgressBars[get_class($oPipeline)] = $this->getProgressBar(
+                        $iPipelineCount,
+                        get_class($oPipeline)
+                    );
+                }
             }
 
             if (empty($iTotalOperations)) {
                 $this->logln('Nothing to commit.');
                 return $this;
+            } else {
+                $aProgressBars['total']->setMaxSteps($iTotalOperations);
             }
 
-            $oProgressBar = new ProgressBar($this->getOutputInterface(), $iTotalOperations);
-            $oProgressBar->setFormat(static::PROGRESS_BAR_FORMAT);
-            $oProgressBar->start();
+            foreach ($aProgressBars as $oProgressBar) {
+                $oProgressBar->start();
+            }
         }
 
         foreach ($aPipelines as $oPipeline) {
-            $this->commitPipeline($oPipeline, $oProgressBar ?? null);
+            $this->commitPipeline(
+                $oPipeline,
+                $aProgressBars['total'] ?? null,
+                $aProgressBars[get_class($oPipeline)] ?? null
+            );
         }
 
-        if (!empty($oProgressBar)) {
-            $oProgressBar->finish();
+        if (!empty($aProgressBars['total'])) {
+            $aProgressBars['total']->finish();
             $this->logln();
         }
 
@@ -437,13 +484,18 @@ class Manager
     /**
      * Executes a Pipeline
      *
-     * @param Pipeline         $oPipeline    The pipeline to execute
-     * @param ProgressBar|null $oProgressBar The progress bar object, if using one
+     * @param Pipeline         $oPipeline         The pipeline to execute
+     * @param ProgressBar|null $oTotalProgressBar The [total] progress bar object, if using one
+     * @param ProgressBar|null $oTotalProgressBar The [pipeline] progress bar object, if using one
      *
      * @return $this
      */
-    protected function preparePipeline(Pipeline $oPipeline, ?ProgressBar $oProgressBar): self
-    {
+    protected function preparePipeline(
+        Pipeline $oPipeline,
+        ?ProgressBar $oTotalProgressBar,
+        ?ProgressBar $oSectionProgressBar
+    ): self {
+
         $sPipeline = get_class($oPipeline);
         $this->logln('Preparing pipeline: <info>' . $sPipeline . '</info>... ', OutputInterface::VERBOSITY_VERBOSE);
 
@@ -554,10 +606,17 @@ class Manager
                 }
 
             } finally {
-                if ($oProgressBar) {
-                    $oProgressBar->advance();
+                if ($oTotalProgressBar) {
+                    $oTotalProgressBar->advance();
+                }
+                if ($oSectionProgressBar) {
+                    $oSectionProgressBar->advance();
                 }
             }
+        }
+
+        if (!empty($oSectionProgressBar)) {
+            $oSectionProgressBar->finish();
         }
 
         $this->logln('', OutputInterface::VERBOSITY_VERBOSE);
@@ -570,13 +629,18 @@ class Manager
     /**
      * Commits a Pipeline
      *
-     * @param Pipeline         $oPipeline    The pipeline to commit
-     * @param ProgressBar|null $oProgressBar The progress bar object, if using one
+     * @param Pipeline         $oPipeline         The pipeline to commit
+     * @param ProgressBar|null $oTotalProgressBar The [total] progress bar object, if using one
+     * @param ProgressBar|null $oTotalProgressBar The [pipeline] progress bar object, if using one
      *
      * @return $this
      */
-    protected function commitPipeline(Pipeline $oPipeline, ?ProgressBar $oProgressBar): self
-    {
+    protected function commitPipeline(
+        Pipeline $oPipeline,
+        ?ProgressBar $oTotalProgressBar,
+        ?ProgressBar $oSectionProgressBar
+    ): self {
+
         $sPipeline = get_class($oPipeline);
         $this->logln('Committing pipeline: <info>' . $sPipeline . '</info>... ', OutputInterface::VERBOSITY_VERBOSE);
 
@@ -636,8 +700,11 @@ class Manager
                 }
 
             } finally {
-                if ($oProgressBar) {
-                    $oProgressBar->advance();
+                if ($oTotalProgressBar) {
+                    $oTotalProgressBar->advance();
+                }
+                if ($oSectionProgressBar) {
+                    $oSectionProgressBar->advance();
                 }
             }
         }
@@ -646,6 +713,10 @@ class Manager
             //  @todo (Pablo - 2020-06-19) - Commit transaction, if supported
         } else {
             //  @todo (Pablo - 2020-06-19) - rollback transaction, if supported
+        }
+
+        if (!empty($oSectionProgressBar)) {
+            $oSectionProgressBar->finish();
         }
 
         $this->logln('', OutputInterface::VERBOSITY_VERBOSE);
