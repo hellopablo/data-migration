@@ -356,12 +356,10 @@ class Manager
                 $iTotalOperations += $iPipelineCount;
                 $oConnector->disconnect();
 
-                if (count($aPipelines) > 1) {
-                    $aProgressBars[get_class($oPipeline)] = $this->getProgressBar(
-                        $iPipelineCount,
-                        get_class($oPipeline)
-                    );
-                }
+                $aProgressBars[get_class($oPipeline)] = $this->getProgressBar(
+                    $iPipelineCount,
+                    get_class($oPipeline)
+                );
             }
 
             $aProgressBars['total']->setMaxSteps($iTotalOperations);
@@ -429,12 +427,10 @@ class Manager
                 $iPipelineCount   = $this->countLines($oPipeline);
                 $iTotalOperations += $iPipelineCount;
 
-                if (count($aPipelines) > 1) {
-                    $aProgressBars[get_class($oPipeline)] = $this->getProgressBar(
-                        $iPipelineCount,
-                        get_class($oPipeline)
-                    );
-                }
+                $aProgressBars[get_class($oPipeline)] = $this->getProgressBar(
+                    $iPipelineCount,
+                    get_class($oPipeline)
+                );
             }
 
             if (empty($iTotalOperations)) {
