@@ -2,6 +2,8 @@
 
 namespace HelloPablo\DataMigration\Interfaces;
 
+use HelloPablo\DataMigration\Exception\PipelineException\CommitException\SkipException;
+
 /**
  * Interface Pipeline
  *
@@ -42,4 +44,58 @@ interface Pipeline
      * @return Recipe
      */
     public function getRecipe(): Recipe;
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Called at the start of the pipelie
+     */
+    public function commitStart(): void;
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Called before each unit of work
+     *
+     * @param Unit $oUnit The current unit of work
+     */
+    public function commitBefore(Unit $oUnit): void;
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Called after each unit of work
+     *
+     * @param Unit $oUnit The current unit of work
+     */
+    public function commitAfter(Unit $oUnit): void;
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Called if a unit of work is skipped
+     *
+     * @param Unit          $oUnit The current unit of work
+     * @param SkipException $e     The exception which was thrown
+     */
+    public function commitSkipped(Unit $oUnit, SkipException $e): void;
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Called if a unit of work errors
+     *
+     * @param Unit       $oUnit The current unit of work
+     * @param \Exception $e     The exception which was thrown
+     */
+    public function commitError(Unit $oUnit, \Exception $e): void;
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Called at the end of the pipelie
+     *
+     * @param array $aErrors Any errors which occurred during commit
+     */
+    public function commitFinish(array $aErrors): void;
 }

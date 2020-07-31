@@ -656,12 +656,15 @@ class Manager
 
         //  @todo (Pablo - 2020-06-19) - Start a transaction, if supported
 
+        $oPipeline->commitStart();
 
         while (($sBuffer = fgets($this->aPipelineCache[$sPipeline])) !== false) {
 
             $oUnit = unserialize(str_replace('\\\n', "\n", $sBuffer));
 
             try {
+
+                $oPipeline->commitBefore($oUnit);
 
                 $this->log(' – Committing source item <info>#' . $oUnit->getSourceId() . '</info>... ', OutputInterface::VERBOSITY_VERBOSE);
                 $oConnectorTarget->write($oUnit);
@@ -673,7 +676,17 @@ class Manager
                     $oUnit->getTargetId()
                 );
 
+                $oPipeline->commitAfter($oUnit);
+
+            } catch (CommitException\SkipException $e) {
+
+                $oPipeline->commitSkipped($oUnit, $e);
+
+                $this->logln('<info>skipping</info>: ' . $e->getMessage(), OutputInterface::VERBOSITY_VERBOSE);
+
             } catch (\Exception $e) {
+
+                $oPipeline->commitError($oUnit, $e);
 
                 $this->logln('<error>' . $e->getMessage() . '</error>', OutputInterface::VERBOSITY_VERBOSE);
 
@@ -705,6 +718,8 @@ class Manager
                 }
             }
         }
+
+        $oPipeline->commitFinish($this->aCommitErrors);
 
         if (empty($this->aCommitErrors)) {
             //  @todo (Pablo - 2020-06-19) - Commit transaction, if supported
