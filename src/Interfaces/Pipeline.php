@@ -16,6 +16,8 @@ interface Pipeline
      */
     public static function getPriority(): int;
 
+    // --------------------------------------------------------------------------
+
     /**
      * Returns the connector to use for the data source
      *

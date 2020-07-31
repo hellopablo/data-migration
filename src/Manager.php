@@ -656,9 +656,10 @@ class Manager
 
         //  @todo (Pablo - 2020-06-19) - Start a transaction, if supported
 
-        while (($buffer = fgets($this->aPipelineCache[$sPipeline])) !== false) {
 
-            $oUnit = unserialize(str_replace('\\\n', "\n", $buffer));
+        while (($sBuffer = fgets($this->aPipelineCache[$sPipeline])) !== false) {
+
+            $oUnit = unserialize(str_replace('\\\n', "\n", $sBuffer));
 
             try {
 
