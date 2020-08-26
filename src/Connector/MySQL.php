@@ -223,4 +223,16 @@ class MySQL implements Connector
 
         return $this;
     }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Returns the PDO API
+     *
+     * @return \Pdo
+     */
+    public function getApi(): \Pdo
+    {
+        return $this->oPdo;
+    }
 }
