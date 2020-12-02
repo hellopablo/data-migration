@@ -286,7 +286,7 @@ class Manager
             }
 
             $this->logln('Testing target connector:');
-            $oConnector = $oPipeline->getSourceConnector();
+            $oConnector = $oPipeline->getTargetConnector();
 
             try {
 
