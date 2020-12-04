@@ -20,6 +20,24 @@ interface Transformer
     // --------------------------------------------------------------------------
 
     /**
+     * Returns the source property, if null then the field is considered new
+     *
+     * @return ?string
+     */
+    public function getSourceProperty(): ?string;
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Returns the target property
+     *
+     * @return string
+     */
+    public function getTargetProperty(): string;
+
+    // --------------------------------------------------------------------------
+
+    /**
      * Applies the transformation
      *
      * @param mixed $mInput The value to transform
