@@ -564,7 +564,7 @@ class Manager
                 }
 
                 $oUnit
-                    ->applyRecipe($oRecipe);
+                    ->applyRecipe($oRecipe, $oPipeline);
 
                 if ($this->isDebug()) {
                     $this
@@ -573,8 +573,6 @@ class Manager
                         ->logln(print_r($oUnit, true));
                     die();
                 }
-
-                //  @todo (Pablo - 2020-06-17) - Track the IDs
 
                 fwrite(
                     $this->aPipelineCache[$sPipeline],

@@ -158,12 +158,12 @@ class Unit implements \HelloPablo\DataMigration\Interfaces\Unit
      *
      * @return $this
      */
-    public function applyRecipe(Interfaces\Recipe $oRecipe): Interfaces\Unit
+    public function applyRecipe(Interfaces\Recipe $oRecipe, Interfaces\Pipeline $oPipeline): Interfaces\Unit
     {
         $this->oTarget = (object) [];
 
         /** @var Interfaces\Transformer $oTransformer */
-        foreach ($oRecipe->yieldTransformers() as $oTransformer) {
+        foreach ($oRecipe->yieldTransformers($oPipeline) as $oTransformer) {
             $this->applyTransformer($oTransformer);
         }
 

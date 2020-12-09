@@ -12,7 +12,9 @@ interface Recipe
     /**
      * Yields transformers to apply to the unit
      *
+     * @param Pipeline $oPipeline The Pipeline being executed
+     *
      * @return \Generator
      */
-    public function yieldTransformers(): \Generator;
+    public function yieldTransformers(Pipeline $oPipeline): \Generator;
 }

@@ -104,11 +104,12 @@ interface Unit
     /**
      * Applies a recipe to the unit
      *
-     * @param Recipe $oRecipe The recipe to apply
+     * @param Recipe   $oRecipe   The recipe to apply
+     * @param Pipeline $oPipeline The pipeline being executed
      *
      * @return $this
      */
-    public function applyRecipe(Recipe $oRecipe): self;
+    public function applyRecipe(Recipe $oRecipe, Pipeline $oPipeline): self;
 
     // --------------------------------------------------------------------------
 
