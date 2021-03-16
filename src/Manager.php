@@ -726,7 +726,7 @@ class Manager
 
         //  @todo (Pablo - 2020-06-19) - Start a transaction, if supported
 
-        $oPipeline->commitStart();
+        $oPipeline->commitStart($this);
 
         while (($sBuffer = fgets($this->aPipelineCache[$sPipeline])) !== false) {
 
@@ -734,7 +734,7 @@ class Manager
 
             try {
 
-                $oPipeline->commitBefore($oUnit);
+                $oPipeline->commitBefore($oUnit, $this);
 
                 $this->log(' – Committing source item <info>#' . $oUnit->getSourceId() . '</info>... ', OutputInterface::VERBOSITY_VERBOSE);
                 $oConnectorTarget->write($oUnit);
@@ -746,17 +746,17 @@ class Manager
                     $oUnit->getTargetId()
                 );
 
-                $oPipeline->commitAfter($oUnit);
+                $oPipeline->commitAfter($oUnit, $this);
 
             } catch (CommitException\SkipException $e) {
 
-                $oPipeline->commitSkipped($oUnit, $e);
+                $oPipeline->commitSkipped($oUnit, $e, $this);
 
                 $this->logln('<info>skipping</info>: ' . $e->getMessage(), OutputInterface::VERBOSITY_VERBOSE);
 
             } catch (\Exception $e) {
 
-                $oPipeline->commitError($oUnit, $e);
+                $oPipeline->commitError($oUnit, $e, $this);
 
                 $this->logln('<error>' . $e->getMessage() . '</error>', OutputInterface::VERBOSITY_VERBOSE);
 
