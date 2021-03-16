@@ -847,7 +847,7 @@ class Manager
             OutputInterface::VERBOSITY_VERY_VERBOSE
         );
 
-        $oPipeline->commitFinish($this->aCommitErrors);
+        $oPipeline->commitFinish($this->aCommitErrors, $this);
 
         if (empty($this->aCommitErrors)) {
             //  @todo (Pablo - 2020-06-19) - Commit transaction, if supported
