@@ -25,6 +25,9 @@ class Manager
     /** @var OutputInterface|null */
     protected $oOutputInterface;
 
+    /** @var resource|null */
+    protected $rLogFile;
+
     /** @var bool */
     protected $bDebug = false;
 
@@ -56,18 +59,21 @@ class Manager
      *
      * @param string|null          $sCacheDir        The Cache directory to use
      * @param OutputInterface|null $oOutputInterface An OutputInterface to use
+     * @param resource             $rLogFile         A file to log to
      * @param bool                 $bDebug           Whether to run in debug mode or not
      * @param bool                 $bDryRun          Whetehr to run in dry-run mode or not
      */
     public function __construct(
         string $sCacheDir = null,
         OutputInterface $oOutputInterface = null,
+        resource $rLogFile = null,
         bool $bDebug = false,
         bool $bDryRun = false
     ) {
         $this
             ->setCacheDir($sCacheDir ?: sys_get_temp_dir())
             ->setOutputInterface($oOutputInterface)
+            ->setLogFile($rLogFile)
             ->setDebug($bDebug)
             ->setDryRun($bDryRun);
     }
@@ -97,6 +103,42 @@ class Manager
     public function getOutputInterface(): ?OutputInterface
     {
         return $this->oOutputInterface;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Sets the log file to use
+     *
+     * @param resource|null $rLogFile The log file to use
+     *
+     * @return $this
+     */
+    public function setLogFile($rLogFile): self
+    {
+        if (!is_null($rLogFile) && !is_resource($rLogFile)) {
+            throw new \InvalidArgumentException(
+                sprintf(
+                    'Argument must be a valid resource type. %s given.',
+                    gettype($rLogFile)
+                )
+            );
+        }
+
+        $this->rLogFile = $rLogFile;
+        return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Returns the active log file
+     *
+     * @return resource|null
+     */
+    public function getLogFile()
+    {
+        return $this->rLogFile;
     }
 
     // --------------------------------------------------------------------------
@@ -226,16 +268,24 @@ class Manager
      */
     public function log($sLine = '', $iVerbosity = OutputInterface::VERBOSITY_NORMAL): self
     {
-        if ($this->oOutputInterface && $this->oOutputInterface->getVerbosity() >= $iVerbosity) {
-            $this->oOutputInterface->write($sLine);
+        $oOutputInterface = $this->getOutputInterface();
+        $rLogFile         = $this->getLogFile();
+
+        if ($oOutputInterface && $oOutputInterface->getVerbosity() >= $iVerbosity) {
+            $oOutputInterface->write($sLine);
         }
+
+        if ($rLogFile) {
+            fwrite($rLogFile, $this->stripFormatting($sLine));
+        }
+
         return $this;
     }
 
     // --------------------------------------------------------------------------
 
     /**
-     * Writes a lie to the OutputInterface
+     * Writes a string followed by a new line to the OutputInterface
      *
      * @param string $sLine      The line to write
      * @param int    $iVerbosity The verbosity to write at
@@ -244,10 +294,32 @@ class Manager
      */
     public function logln($sLine = '', $iVerbosity = OutputInterface::VERBOSITY_NORMAL): self
     {
-        if ($this->oOutputInterface && $this->oOutputInterface->getVerbosity() >= $iVerbosity) {
-            $this->oOutputInterface->writeln($sLine);
+        $oOutputInterface = $this->getOutputInterface();
+        $rLogFile         = $this->getLogFile();
+
+        if ($oOutputInterface && $oOutputInterface->getVerbosity() >= $iVerbosity) {
+            $oOutputInterface->writeln($sLine);
         }
+
+        if ($rLogFile) {
+            fwrite($rLogFile, $this->stripFormatting($sLine) . PHP_EOL);
+        }
+
         return $this;
+    }
+
+    // --------------------------------------------------------------------------
+
+    /**
+     * Strips output formatting
+     *
+     * @param string $sLine
+     *
+     * @return string
+     */
+    private function stripFormatting(string $sLine): string
+    {
+        return preg_replace('/<.+?>/', '', $sLine);
     }
 
     // --------------------------------------------------------------------------
