@@ -734,11 +734,28 @@ class Manager
 
             try {
 
+                $this->logln(
+                    sprintf(
+                        ' – Calling %s::commitBefore',
+                        $sPipeline
+                    ),
+                    OutputInterface::VERBOSITY_VERY_VERBOSE
+                );
+
                 $oPipeline->commitBefore($oUnit, $this);
 
                 $this->log(' – Committing source item <info>#' . $oUnit->getSourceId() . '</info>... ', OutputInterface::VERBOSITY_VERBOSE);
                 $oConnectorTarget->write($oUnit);
                 $this->logln('<info>done</info>; target ID is <info>#' . $oUnit->getTargetId() . '</info>', OutputInterface::VERBOSITY_VERBOSE);
+
+                $this->logln(
+                    sprintf(
+                        ' – Storing ID map %s -> %s',
+                        $oUnit->getSourceId(),
+                        $oUnit->getTargetId()
+                    ),
+                    OutputInterface::VERBOSITY_VERY_VERBOSE
+                );
 
                 IdMapper::add(
                     get_class($oPipeline),
@@ -746,15 +763,39 @@ class Manager
                     $oUnit->getTargetId()
                 );
 
+                $this->logln(
+                    sprintf(
+                        ' – Calling %s::commitAfter',
+                        $sPipeline
+                    ),
+                    OutputInterface::VERBOSITY_VERY_VERBOSE
+                );
+
                 $oPipeline->commitAfter($oUnit, $this);
 
             } catch (CommitException\SkipException $e) {
+
+                $this->logln(
+                    sprintf(
+                        ' – Calling %s::commitSkipped',
+                        $sPipeline
+                    ),
+                    OutputInterface::VERBOSITY_VERY_VERBOSE
+                );
 
                 $oPipeline->commitSkipped($oUnit, $e, $this);
 
                 $this->logln('<info>skipping</info>: ' . $e->getMessage(), OutputInterface::VERBOSITY_VERBOSE);
 
             } catch (\Exception $e) {
+
+                $this->logln(
+                    sprintf(
+                        ' – Calling %s::commitError',
+                        $sPipeline
+                    ),
+                    OutputInterface::VERBOSITY_VERY_VERBOSE
+                );
 
                 $oPipeline->commitError($oUnit, $e, $this);
 
@@ -780,14 +821,31 @@ class Manager
                 }
 
             } finally {
+
                 if ($oTotalProgressBar) {
+                    $this->logln(
+                        ' – Advancing overall progress bar',
+                        OutputInterface::VERBOSITY_DEBUG
+                    );
                     $oTotalProgressBar->advance();
                 }
                 if ($oSectionProgressBar) {
+                    $this->logln(
+                        ' – Advancing section progress bar',
+                        OutputInterface::VERBOSITY_DEBUG
+                    );
                     $oSectionProgressBar->advance();
                 }
             }
         }
+
+        $this->logln(
+            sprintf(
+                ' – Calling %s::commitFinish',
+                $sPipeline
+            ),
+            OutputInterface::VERBOSITY_VERY_VERBOSE
+        );
 
         $oPipeline->commitFinish($this->aCommitErrors);
 
@@ -798,6 +856,10 @@ class Manager
         }
 
         if (!empty($oSectionProgressBar)) {
+            $this->logln(
+                'Advancing section progress bar to end',
+                OutputInterface::VERBOSITY_DEBUG
+            );
             $oSectionProgressBar->finish();
         }
 
