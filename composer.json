@@ -3,7 +3,7 @@
     "description": "A framework for migrating data between sources.",
     "type": "library",
     "require": {
-        "php": "^7.2",
+        "php": ">=7.2",
         "symfony/console": "5.*"
     },
     "require-dev": {
